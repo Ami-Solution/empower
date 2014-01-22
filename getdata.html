@@ -28,7 +28,7 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#">Empower.me!</a>
+        <a class="navbar-brand" href="index.html">Empower.me!</a>
       </div>
 
       <!-- Collect the nav links, forms, and other content for toggling -->
@@ -60,16 +60,23 @@
     </div>
 
     <div class="container">
-      <h1>Check who has your data</h1>
-      <form id="formPostcode" class="form-inline" role="form">
-        <div id="postcodeGroup" class="form-group">
-          <label class="sr-only" for="postcodeInput">Enter your postcode:</label>
-          <input type="email" class="form-control" id="postcodeInput" name="postcodeInput" placeholder="4-digit postcode, e.g. 3875">
+      <h1 style="text-align:center;">Check who has your data</h1>
+      <div class="row">
+        <div class="col-md-6">
+          <form id="formPostcode" class="form-inline pull-right" role="form">
+            <div id="postcodeGroup" class="form-group">
+              <label class="sr-only" for="postcodeInput">Enter your postcode:</label>
+              <input type="email" class="form-control" id="postcodeInput" name="postcodeInput" placeholder="4-digit postcode, e.g. 3875">
+            </div>
+          </form>
         </div>
-        <div id="yourUtility">
-        </div>
-      </form>
+        <div class="col-md-6">
+          <div id="yourUtility" class="pull-left">
+          </div>
+        </div>  
     </div>
+
+    <br>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery.js"></script>
@@ -85,65 +92,48 @@
             return false;
           });
 
-          var processPostcode = function(d){
-            alert(d);
-          };
-
           $('#formPostcode').bootstrapValidator({
               // The default error message for all fields
-              // You can specify the error message for any fields
               message: '',
 
-              // Custom submit handler
-              // The handler has two arguments
-              // - validator is the instance of BootstrapValidator
-              // - form is jQuery object representing the current form
-              // By default, submitHandler is null
-              submitHandler: function(validator, form) {
-                  // Should we prevent the form from being sent?
-
-              },
-
-              // Live validating. Can be one of 3 values:
-              // - enabled: The plugin validates fields as soon as they are changed
-              // - disabled: Disable the live validating.
-              // The error messages are only shown after the form is submitted
-              // - submitted: The live validating is enabled after the form is submitted
+              // Live validating.
               live: 'enabled',
 
               // The fields which need to be validated
               fields: {
-                  // The field name
-                  // It is value of the name attribute
+                  // The field name (value of the "name" attribute)
                   postcodeInput: {
                       // The default error message for this field
                       message: ' ',
                       // Array of validators
                       validators: {
+                          digits:{
+                            message:'Only digits please e.g. 3875'
+                          },
                           stringLength: {
                             min:4,
                             max:4,
-                            message:'Your postcode should be 4-digit long e.g. 3875'
+                            message:'Try a 4-digit postcode e.g. 3875'
                           },
-                          digits:{},
                           callback:{
                             callback: function(fieldValue, validator){
                               if (fieldValue.length == 4)
                               {
                                 // We send an AJAX request to the provider service
-                                $.ajax({
-                                  dataType: "jsonp",
-                                  dataFilter: function(raw,dt){
-                                    return "{data:processPostcode("+raw+"),type:"+dt+"}";
-                                  },
-                                  url:"https://mpp.switchon.vic.gov.au/create/relevant-offers/ajax/postcode/"+fieldValue,
-                                  success: function(json){
+                                $.getJSON(
+                                  "ws/ws_get_utility.php?postcode="+fieldValue,
+                                  function(json){
+                                      if (json.error)
+                                      {
+                                        $('#postcodeGroup .help-block').html(json.error).css("display","block");
+                                        $('#postcodeGroup').removeClass("has-success").addClass("has-error");
+                                      }
                                       if (json.data)
                                       {
                                         $('#yourUtility').html(json.data);
                                       }
                                   }
-                                });
+                                );
                               }
                             }
                           }

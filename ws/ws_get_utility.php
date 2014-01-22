@@ -12,10 +12,7 @@ require_once("inc/json.pdo.inc.php");
 try {
 	$p_postcode = $_REQUEST['postcode'];
 	$url = 'https://mpp.switchon.vic.gov.au/create/relevant-offers/ajax/postcode/'.$p_postcode;
-	echo "URL:".$url;
-
 	$ret = file_get_contents($url);
-	echo $ret;
 
 	// Required to cater for IE
 	header("Content-Type: text/html");
