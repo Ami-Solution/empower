@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Empower.me</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="bootstrapvalidator/css/bootstrapValidator.min.css"/>
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+    <style>
+      .well {
+        margin:10px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-inverse" role="navigation">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">Empower.me!</a>
+      </div>
+
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="#">Get data</a></li>
+          <li><a href="visualise.html">Visualise</a></li>
+          <li><a href="improve.html">Improve</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Contact <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="#">Services</a></li>
+              <li><a href="#">About us</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </nav>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+      <div class="container">
+        <h1>Get your smart meter data</h1>
+        <p>It's your legal right to access electricity information collected by your utility. Get it now to start fighting back!</p>
+        <p class="pull-right"><a class="btn btn-primary btn-lg" role="button">Start</a></p>
+      </div>
+    </div>
+
+    <div class="container">
+      <h1>Check who has your data</h1>
+      <form id="formPostcode" class="form-inline" role="form">
+        <div id="postcodeGroup" class="form-group">
+          <label class="sr-only" for="postcodeInput">Enter your postcode:</label>
+          <input type="email" class="form-control" id="postcodeInput" name="postcodeInput" placeholder="4-digit postcode, e.g. 3875">
+        </div>
+        <div id="yourUtility">
+        </div>
+      </form>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="bootstrapvalidator/js/bootstrapValidator.min.js"></script>
+    <script>
+      // Monitoring the postcode input field
+      // At the 4th character, send a JSON request
+      $(document).ready(function() {
+          $('form').on('submit',function(event){
+            // In all cases, we disable the form submission
+            return false;
+          });
+
+          var processPostcode = function(d){
+            alert(d);
+          };
+
+          $('#formPostcode').bootstrapValidator({
+              // The default error message for all fields
+              // You can specify the error message for any fields
+              message: '',
+
+              // Custom submit handler
+              // The handler has two arguments
+              // - validator is the instance of BootstrapValidator
+              // - form is jQuery object representing the current form
+              // By default, submitHandler is null
+              submitHandler: function(validator, form) {
+                  // Should we prevent the form from being sent?
+
+              },
+
+              // Live validating. Can be one of 3 values:
+              // - enabled: The plugin validates fields as soon as they are changed
+              // - disabled: Disable the live validating.
+              // The error messages are only shown after the form is submitted
+              // - submitted: The live validating is enabled after the form is submitted
+              live: 'enabled',
+
+              // The fields which need to be validated
+              fields: {
+                  // The field name
+                  // It is value of the name attribute
+                  postcodeInput: {
+                      // The default error message for this field
+                      message: ' ',
+                      // Array of validators
+                      validators: {
+                          stringLength: {
+                            min:4,
+                            max:4,
+                            message:'Your postcode should be 4-digit long e.g. 3875'
+                          },
+                          digits:{},
+                          callback:{
+                            callback: function(fieldValue, validator){
+                              if (fieldValue.length == 4)
+                              {
+                                // We send an AJAX request to the provider service
+                                $.ajax({
+                                  dataType: "jsonp",
+                                  dataFilter: function(raw,dt){
+                                    return "{data:processPostcode("+raw+"),type:"+dt+"}";
+                                  },
+                                  url:"https://mpp.switchon.vic.gov.au/create/relevant-offers/ajax/postcode/"+fieldValue,
+                                  success: function(json){
+                                      if (json.data)
+                                      {
+                                        $('#yourUtility').html(json.data);
+                                      }
+                                  }
+                                });
+                              }
+                            }
+                          }
+                      }
+                  }
+              }
+          });
+      });      
+
+    </script>
+  </body>
+</html>
