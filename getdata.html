@@ -92,25 +92,6 @@
             return false;
           });
 
-          // Attempting cleaning up of the returned file, as it contains invalid (partial table) markup
-          function extractContent(html)
-          {
-            var tmp = document.createElement("DIV");
-            tmp.innerHTML = html;
-            var qh = $(html);
-            var str = "";
-            qh.filter("tr").each(function(idx,o){
-                console.log(idx+o);
-                // Distributor name
-                str = str.concat($($(o)[0].children)[0].innerHTML);
-                // Distributor contacts
-                str = str.concat(" (",$($(o)[0].children)[1].innerHTML,")");
-                // Possible further distributor
-                str = str.concat("<br>");
-            });
-            return str;
-          }
-
           $('#formPostcode').bootstrapValidator({
               // The default error message for all fields
               message: '',
@@ -146,13 +127,27 @@
                                     {
                                       $('#postcodeGroup .help-block').html(json.error).css("display","block");
                                       $('#postcodeGroup').removeClass("has-success").addClass("has-error");
+                                      $('#yourUtility').html("");
                                     }
-                                    if (json.data)
+                                    if (json.rows)
                                     {
-                                      $('#yourUtility').html(extractContent(json.data));
+                                      var utilityStr = "";
+                                      for (var i=0;i<json.rows.length;i++)
+                                      {
+                                        utilityStr += json.rows[i].distributor;
+                                        if (i < json.rows.length - 1)
+                                        {
+                                          utilityStr += ", ";
+                                        }
+                                      }
+                                      $('#yourUtility').html(utilityStr);
                                     }
                                   }
                                 );
+                              }
+                              else
+                              {
+                                $('#yourUtility').html("");
                               }
                             }
                           }

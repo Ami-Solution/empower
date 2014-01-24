@@ -11,7 +11,7 @@
 function pgConnection() {
 	try {
 		// Connect to the database passed in the config variable
-		$conn = new PDO ("pgsql:host=localhost;dbname=takingactions;port=5432","ta_app","ta_app", array(PDO::ATTR_PERSISTENT => true));
+		$conn = new PDO ("pgsql:host=localhost;dbname=ee;port=5432","ee_app","ee_app", array(PDO::ATTR_PERSISTENT => true));
 	    return $conn;
 	}
 	catch (Exception $e) {

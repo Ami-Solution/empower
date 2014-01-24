@@ -5,18 +5,30 @@
 
 # Includes
 require_once("inc/error.inc.php");
+require_once("inc/database.inc.php");
 require_once("inc/security.inc.php");
 require_once("inc/json.pdo.inc.php");
 
 # Performs the query and returns XML or JSON
 try {
 	$p_postcode = $_REQUEST['postcode'];
-	$url = 'https://mpp.switchon.vic.gov.au/create/relevant-offers/ajax/postcode/'.$p_postcode;
-	$ret = file_get_contents($url);
+
+	$sql = <<<ENDSQL
+select d.label as distributor 
+from distribution_area d,postcode_2011 p
+where ST_Intersects(p.geom,d.geom) and p.poa_code='$p_postcode'
+ENDSQL;
+
+	//echo $sql;
+	$pgconn = pgConnection();
+
+    /*** fetch into an PDOStatement object ***/
+    $recordSet = $pgconn->prepare($sql);
+    $recordSet->execute();
 
 	// Required to cater for IE
-	header("Content-Type: application/json");
-	echo $ret;
+	header("Content-Type: text/html");
+	echo rs2json($recordSet);
 }
 catch (Exception $e) {
 	trigger_error("Caught Exception: " . $e->getMessage(), E_USER_ERROR);
