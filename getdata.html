@@ -92,6 +92,24 @@
             return false;
           });
 
+          function extractContent(html)
+          {
+            var tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            var qh = $(html);
+            var str = "";
+            qh.filter("tr").each(function(idx,o){
+                console.log(idx+o);
+                // Distributor name
+                str = str.concat($($(o)[0].children)[0].innerHTML);
+                // Distributor contacts
+                str = str.concat(" (",$($(o)[0].children)[1].innerHTML,")");
+                // Possible further distributor
+                str = str.concat("<br>");
+            });
+            return str;
+          }
+
           $('#formPostcode').bootstrapValidator({
               // The default error message for all fields
               message: '',
@@ -130,7 +148,7 @@
                                       }
                                       if (json.data)
                                       {
-                                        $('#yourUtility').html(json.data);
+                                        $('#yourUtility').html(extractContent(json.data));
                                       }
                                   }
                                 );
