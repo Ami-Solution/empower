@@ -16,7 +16,7 @@ try {
 	$sql = <<<ENDSQL
 select d.label as distributor 
 from distribution_area d,postcode_2011 p
-where ST_Intersects(p.geom,d.geom) and p.poa_code='$p_postcode'
+where ST_Intersects(p.the_geom,d.the_geom) and p.poa_code='$p_postcode'
 ENDSQL;
 
 	//echo $sql;
