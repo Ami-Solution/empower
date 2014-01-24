@@ -92,6 +92,7 @@
             return false;
           });
 
+          // Attempting cleaning up of the returned file, as it contains invalid (partial table) markup
           function extractContent(html)
           {
             var tmp = document.createElement("DIV");
@@ -141,15 +142,15 @@
                                 $.getJSON(
                                   "ws/ws_get_utility.php?postcode="+fieldValue,
                                   function(json){
-                                      if (json.error)
-                                      {
-                                        $('#postcodeGroup .help-block').html(json.error).css("display","block");
-                                        $('#postcodeGroup').removeClass("has-success").addClass("has-error");
-                                      }
-                                      if (json.data)
-                                      {
-                                        $('#yourUtility').html(extractContent(json.data));
-                                      }
+                                    if (json.error)
+                                    {
+                                      $('#postcodeGroup .help-block').html(json.error).css("display","block");
+                                      $('#postcodeGroup').removeClass("has-success").addClass("has-error");
+                                    }
+                                    if (json.data)
+                                    {
+                                      $('#yourUtility').html(extractContent(json.data));
+                                    }
                                   }
                                 );
                               }

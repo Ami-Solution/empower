@@ -15,7 +15,7 @@ try {
 	$ret = file_get_contents($url);
 
 	// Required to cater for IE
-	header("Content-Type: text/html");
+	header("Content-Type: application/json");
 	echo $ret;
 }
 catch (Exception $e) {
