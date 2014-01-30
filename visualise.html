@@ -127,7 +127,7 @@
             dataType: 'json',
             autoUpload: true,
             acceptFileTypes: /(\.|\/)(pdf|txt|csv)$/i,
-            maxFileSize: 5000000, // 5 MB
+            maxFileSize: 6000000, // 6 MB
             disableImageResize: true,
             previewMaxWidth: 100,
             previewMaxHeight: 100,
@@ -170,6 +170,33 @@
                         .prop('href', file.url);
                     $(data.context.children()[index])
                         .wrap(link);
+
+                    // That's where we should do further processing
+                    // 1) file detection
+                    //  a. Type (PDF/txt)
+                    //  b. Format (heuristics to recognise distributor or retailer)
+                    // 2) upload in our DB
+                    //  a. Into staging
+                    //  b. From staging to overall consumption table
+                    // 3) cleanup procedure
+                    //  a. Remove uploaded file
+                    //  b. Remove staged data
+                    // 4) User information
+                    //  a. Upload complete
+                    //  b. Link to the newly uploaded data
+
+                    $.getJSON("ws/ws_process_smd_file.php",
+                        {
+                            url: file.url
+                        },
+                        function(r){
+                            if (r)
+                            {
+                                alert("Process terminated with message:"+r.message);
+                            }
+                        }
+                    );
+
                 } else if (file.error) {
                     var error = $('<span class="text-danger"/>').text(file.error);
                     $(data.context.children()[index])

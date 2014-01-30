@@ -4,10 +4,10 @@
     <mapcanvas>
         <units>degrees</units>
         <extent>
-            <xmin>142.82709262507336234</xmin>
-            <ymin>-39.72784588068424227</ymin>
-            <xmax>149.24793070854883581</xmax>
-            <ymax>-35.93889194160254874</ymax>
+            <xmin>141.90039061051194835</xmin>
+            <ymin>-39.30308140213129775</ymin>
+            <xmax>148.61888343957903658</xmax>
+            <ymax>-35.33848059170142619</ymax>
         </extent>
         <projections>1</projections>
         <destinationsrs>
@@ -23,7 +23,7 @@
             </spatialrefsys>
         </destinationsrs>
     </mapcanvas>
-    <legend updateDrawingOrder="true" activeLayer="distribution_areas20140124230601676">
+    <legend updateDrawingOrder="true" activeLayer="POA_2011_AUST20140124230424196">
         <legendlayer drawingOrder="-1" open="true" checked="Qt::Checked" name="POA_2011_AUST" showFeatureCount="0">
             <filegroup open="true" hidden="false">
                 <legendlayerfile isInOverview="0" layerid="POA_2011_AUST20140124230424196" visible="1"/>
