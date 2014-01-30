@@ -192,7 +192,11 @@
                         function(r){
                             if (r)
                             {
-                                alert("Process terminated with message:"+r.message);
+                                //alert("Process terminated with message:"+r.message);
+                                if (r.client_id)
+                                {
+                                    window.location="heatmap/index.html?client_id="+r.client_id;
+                                }
                             }
                         }
                     );

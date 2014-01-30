@@ -41,7 +41,7 @@ try {
 	        $method = "";
 	        break;
 	    default:
-	        echo "Un-recognised MIME type!";
+	        $message = "Un-recognised MIME type!";
 	        break;
     }
 
@@ -51,7 +51,7 @@ try {
     	case "ORIGIN1":
 		    //  a. Into staging
     		//echo "Loading ".$staged_file_path." ...\n";
-    		$staging_script = shell_exec(realpath('../heatmap').'/load/origin.sh '.$staged_file_path);
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/origin.sh '.$staged_file_path.' '.realpath('../staging'));
     		//echo "Returned output from staging script:".$staging_script."\n";
 
     		// Extracting the last line, it contains the start date
@@ -99,6 +99,9 @@ try {
 				$pgconn = pgConnection();
 			    $recordSet = $pgconn->prepare($sql);
 			    $recordSet->execute();
+
+			    // Setting the message:
+			    $message = "Successfully upload smart meter data file";
 		    }
     		break;
     	case "ORIGIN2":
@@ -108,19 +111,19 @@ try {
     	case "LUMO":
     		break;
     	default:
-    		echo "Unknown loading method";
+    		$message = "Unknown loading method";
     }
 
-    // 3) cleanup procedure
+    // 3) cleanup procedure (do not implement right now, to be able to see+fix errors)
     //  a. Remove uploaded file
     //  b. Remove staged data
+
     // 4) User information
     //  a. Upload complete
     //  b. Link to the newly uploaded data
-
 	// Required to cater for IE
 	header("Content-Type: text/html");
-	echo '{"client_id":'.$client_id.',"start_date":"'.$date_start.'","method":"'.$method.'"}';
+	echo '{"message":"'.$message.'","client_id":'.$client_id.',"start_date":"'.$date_start.'","method":"'.$method.'"}';
 }
 catch (Exception $e) {
 	trigger_error("Caught Exception: " . $e->getMessage(), E_USER_ERROR);
