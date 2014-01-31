@@ -9,6 +9,10 @@ require_once("inc/database.inc.php");
 require_once("inc/security.inc.php");
 require_once("inc/json.pdo.inc.php");
 
+# For communication of updates to the calling script
+require_once 'AJAX_PROGRESS.class.php';
+$pb=new AJAX_PROGRESS();
+
 # Performs the query and returns XML or JSON
 try {
 	$p_url = $_REQUEST['url'];
@@ -16,6 +20,8 @@ try {
 	// This script orchestrate the processing of a smart meter data file
     // 1) file detection
     //  a. Type (PDF/txt)
+    $pb->advance(0.15,'Detecting file type...',"Step 1");
+
 	$file_in_a_string = file_get_contents($p_url);
 	$file_info = new finfo(FILEINFO_MIME);  // object oriented approach!
 	$mime_type = $file_info->buffer($file_in_a_string);  // e.g. gives "image/jpeg"
@@ -46,21 +52,24 @@ try {
     }
 
     // 2) upload in our DB
+    $pb->advance(0.2,'Uploading to DB...',"Step 2");
 
     switch($method){
     	case "ORIGIN1":
 		    //  a. Into staging
     		//echo "Loading ".$staged_file_path." ...\n";
+		    $pb->advance(0.3,'Extracting info from PDF to database...',"Step 3");
     		$staging_script = shell_exec(realpath('../heatmap').'/load/origin.sh '.$staged_file_path.' '.realpath('../staging'));
     		//echo "Returned output from staging script:".$staging_script."\n";
 
-    		// Extracting the last line, it contains the start date
+    		// Extracting the penultimate line, it contains the start date
 			$lines=explode("\n", $staging_script);
 			$date_start = $lines[count($lines)-2];
 			//echo "Extracted date start:".$date_start."\n";
 
     		// Client ID
 		    //echo "Obtaining a client ID from the DB ... \n";
+		    $pb->advance(0.4,'Obtaining an ID...',"Step 4");
 			$sql = "select nextval('client_id_seq')";
 			$pgconn = pgConnection();
 		    $recordSet = $pgconn->prepare($sql);
@@ -72,6 +81,7 @@ try {
 
 		    // Properly formatted date
 		    //echo "Obtaining a client ID from the DB ... \n";
+		    $pb->advance(0.5,'Formatting the start date...',"Step 5");
 			$sql = "select to_char(to_date('".$date_start."','DD-Mon-YYYY'),'DD/MM/YYYY')";
 			$pgconn = pgConnection();
 		    $recordSet = $pgconn->prepare($sql);
@@ -84,6 +94,7 @@ try {
 		    //  b. From staging to overall consumption table
 		    if ($date_start && $client_id)
 		    {
+			    $pb->advance(0.6,'Loading staged data to main table...',"Step 6");
 			    //echo "Running the parameterised query to populate the consumption table ... \n";
 			    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-origin1.sql');
 
@@ -114,12 +125,21 @@ try {
     		$message = "Unknown loading method";
     }
 
+    $pb->advance(0.8,'Cleaning up...',"Step 7");
     // 3) cleanup procedure (do not implement right now, to be able to see+fix errors)
     //  a. Remove uploaded file
     //  b. Remove staged data
 
+    $pb->advance(0.9,'Finalising...',"Step 8");
     // 4) User information
     //  a. Upload complete
+
+	//this destroys the progress object, and ends the output to the client
+	//it also emits a special call to the client-side function, with a progress value
+	//of -1, which tells the client that the task is completed
+    $pb->advance(1,'Finished',"Step 9");
+	$pb=null;
+
     //  b. Link to the newly uploaded data
 	// Required to cater for IE
 	header("Content-Type: text/html");
