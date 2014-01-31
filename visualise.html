@@ -100,8 +100,10 @@
         </div>
     </div>
 
+    <div id="myheatmap_title" class="container">
+        <h1>... to visualise your data (example):</h1>
+    </div>
     <div id="myheatmap" class="container">
-      <h1>... to visualise your data (example):</h1>
       <img src="images/heatmap-example.png" class="img-responsive" alt="Smart Meter Data heatmap" class="img-rounded">
     </div>
 
@@ -171,9 +173,15 @@
                         .attr('style','height:700px;width:100%;')
                         .attr('frameBorder','0');
 
-                    $('#myheatmap').empty();
-                    $('#myheatmap').css('padding',0).css('width','100%');
-                    $('#myheatmap').append(heatmap_iframe);
+                    var h1_title = $('<h1>')
+                        .html("Your interactive visualisation:");
+
+                    $('#myheatmap_title').empty()
+                                        .append(h1_title);
+
+                    $('#myheatmap').empty()
+                                .css('padding',0).css('width','100%')
+                                .append(heatmap_iframe);
                 }
             }
             else
