@@ -160,7 +160,20 @@
                 window.top.mk_update_progress=null;
                 return;
             }
-            updateProgress(value,msg);
+            else if (value>1)
+            {
+                // Interpret the message as an action to trigger
+                var json_data = $.parseJSON(msg);
+                if (json_data.client_id)
+                {
+                    window.location = "../heatmap/index.html?client_id="+json_data.client_id;
+                }
+            }
+            else
+            {
+                updateProgress(value,msg);
+            }
+
         }
 
         // Create an iframe.

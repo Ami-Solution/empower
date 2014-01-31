@@ -86,7 +86,7 @@ try {
     	case "ORIGIN1":
 		    //  a. Into staging
     		//echo "Loading ".$staged_file_path." ...\n";
-		    $pb->advance(0.3,'Extracting info from PDF to database...');
+		    $pb->advance(0.3,'Extracting data from Origin PDF to database...');
     		$staging_script = shell_exec(realpath('../heatmap').'/load/origin.sh '.$staged_file_path.' '.realpath('../staging'));
     		//echo "Returned output from staging script:".$staging_script."\n";
 
@@ -129,8 +129,44 @@ try {
 		    }
     		break;
     	case "ORIGIN2":
-    		$pb->advance(0.6,'Loading into Origin2 staging table...');
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading Origin CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/origin-csv.sh '.$staged_file_path);
+
+		    // Properly formatted start date
+		    $pb->advance(0.4,'Formatting the start date...');
+			$sql = "select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);";
+			$pgconn = pgConnection();
+		    $recordSet = $pgconn->prepare($sql);
+		    $recordSet->execute();
+		    while ($row  = $recordSet->fetch())
+		    {
+		        $date_start = $row[0];
+		    }
+
+		    //  b. From staging to overall consumption table
+		    if ($date_start && $client_id)
+		    {
+			    $pb->advance(0.5,'Loading staged data to main table...');
+			    //echo "Running the parameterised query to populate the consumption table ... \n";
+			    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-origin2.sql');
+
+			    // Variable substitution
+				$vars = array(
+				  '{$v_client_id}'	=> $client_id,
+				  '{$v_date_start}'	=> $date_start
+				);
+				$sql = strtr($query_in_a_string, $vars);
+				//echo $sql;
+
+				// Query in a string
+				$pgconn = pgConnection();
+			    $recordSet = $pgconn->prepare($sql);
+			    $recordSet->execute();
+		    }
+
     		break;
+
     	case "AGL":
 		    //  a. Into staging
 		    $pb->advance(0.3,'Loading AGL CSV data into database...');
@@ -138,7 +174,7 @@ try {
 
 		    // Properly formatted start date
 		    $pb->advance(0.4,'Formatting the start date...');
-			$sql = "select substring(startdate,1,position(' ' in startdate)) as startdate from staging_agl1 where id=(select min(a.id) from staging_agl1 a)";
+			$sql = "select substring(startdate,1,position(' ' in startdate)-1) as startdate from staging_agl1 where id=(select min(a.id) from staging_agl1 a)";
 			$pgconn = pgConnection();
 		    $recordSet = $pgconn->prepare($sql);
 		    $recordSet->execute();
@@ -188,6 +224,7 @@ try {
 	//it also emits a special call to the client-side function, with a progress value
 	//of -1, which tells the client that the task is completed
     $pb->advance(1,'Finished');
+    $pb->advance(2,'{"client_id":"'.$client_id.'","date_start":"'.$date_start.'"}');
 
     //  b. Link to the newly uploaded data
 	// Will have to find a way to transfer the data that's not sending back a JSON
