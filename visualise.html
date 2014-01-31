@@ -141,26 +141,26 @@
     // http://encosia.com/easy-incremental-status-updates-for-long-requests/
     // http://www.sencha.com/forum/showthread.php?85419-Progress-Bars-A-New-Approach-to-an-old-problem
 
-    function updateProgress(PercentComplete, Message1, Message2)
+    function updateProgress(PercentComplete, Message)
     {
       var valuenow = parseFloat(PercentComplete)*100;
       $('#progressBar div').attr("aria-valuenow", valuenow);
       $('#progressBar div').css("width", valuenow + '%');
-      $('#progressBar span').html(Message1 + ' ('+ Message2 + ')');
+      $('#progressBar span').html(Message);
     }
 
     function execWithProgress(url)
     {
         var iframe;
 
-        window.top.mk_update_progress=function(value,msg1,msg2){
+        window.top.mk_update_progress=function(value,msg){
             if (value<0)
             {
                 iframe.remove();
                 window.top.mk_update_progress=null;
                 return;
             }
-            updateProgress(value,msg1,msg2);
+            updateProgress(value,msg);
         }
 
         // Create an iframe.
@@ -216,7 +216,7 @@
         }).on('fileuploadprogressall', function (e, data) {
             // Progress needs to be at 0.1 when the file is completely uploaded
             var progress = parseInt(data.loaded / data.total * 0.1, 10);
-            updateProgress(progress,"Uploading file ... (Step 0)");
+            updateProgress(progress,"Uploading file ...");
         }).on('fileuploaddone', function (e, data) {
             $.each(data.result.files, function (index, file) {
                 if (file.url) {

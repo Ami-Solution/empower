@@ -5,7 +5,7 @@
 
     function __construct()
     {
-      $this->template="<script type='text/javascript'>window.top.mk_update_progress(%s,'%s','%s');</script>";
+      $this->template="<script type='text/javascript'>window.top.mk_update_progress(%s,'%s');</script>";
       $this->write(str_pad('<HTML><BODY>',4096)); //force browser to render
     }
 
@@ -16,9 +16,9 @@
       flush();
     }
 
-    function advance($perc,$msg1='',$msg2='')
+    function advance($perc,$msg='')
     {
-     $this->write(sprintf($this->template,$perc,$msg1,$msg2));
+     $this->write(sprintf($this->template,$perc,$msg));
     }
 
     function __destruct()
