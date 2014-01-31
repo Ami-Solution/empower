@@ -1,8 +1,4 @@
 <?php
-/**
- * Returns the entire dataset for a given client
- */
-
 # Includes
 require_once("inc/error.inc.php");
 require_once("inc/database.inc.php");
@@ -11,39 +7,82 @@ require_once("inc/json.pdo.inc.php");
 
 # For communication of updates to the calling script
 require_once 'AJAX_PROGRESS.class.php';
-$pb=new AJAX_PROGRESS();
+$pb = new AJAX_PROGRESS();
 
-# Performs the query and returns XML or JSON
+// Opening up a connection to the database
+$pgconn = pgConnection();
+
+// Convenience function for SQL queries that return only 1 value 
+function singleValueDBQuery ($sql) {
+	global $pgconn;
+    $recordSet = $pgconn->prepare($sql);
+    $recordSet->execute();
+    while ($row  = $recordSet->fetch())
+    {
+        $first_val = $row[0];
+    }
+    return $first_val;
+}
+
+function executeParamLoadQuery ($method,$client_id,$date_start) {
+	global $pb,$pgconn;
+    if ($date_start && $client_id)
+    {
+	    $pb->advance(0.7,'Loading staged data to main table...');
+	    // Correspondance method to query file suffix
+	    $corr = array(
+	    	"ORIGIN1" 	=> "origin1",
+	    	"ORIGIN2" 	=> "origin2",
+	    	"AGL"		=> "agl"
+	    );
+
+	    // Getting the parameterised query
+	    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-'.$corr[$method].'.sql');
+	    // Variable substitution
+		$vars = array(
+		  '{$v_client_id}'	=> $client_id,
+		  '{$v_date_start}'	=> $date_start
+		);
+		$sql = strtr($query_in_a_string, $vars);
+
+		// Preparing and executing the query
+	    $recordSet = $pgconn->prepare($sql);
+	    $recordSet->execute();
+    }	
+}
+
+// This script orchestrate the processing of a smart meter data file
 try {
 	$p_url = $_REQUEST['url'];
 
-	// This script orchestrate the processing of a smart meter data file
     // 1) file detection
     //  a. Type (PDF/txt)
-    $pb->advance(0.15,'Detecting file type...');
 
+    // File upload is supposed to have taken 10% = 0.1 of the process
+    // hence we start the file analysis at 15% = 0.15
+    $pb->advance(0.15,'Detecting file type...');
 	$file_in_a_string = file_get_contents($p_url);
-	$file_info = new finfo(FILEINFO_MIME);  // object oriented approach!
+	$file_info = new finfo(FILEINFO_MIME);
 	$mime_type = $file_info->buffer($file_in_a_string);  // e.g. gives "image/jpeg"
-	# Note: we should probably use stricter URL detection to only consider files we trust (i.e. from our server or other trusted location)
+	// TODO: we should probably use stricter URL detection to only consider files we trust (i.e. from our server or other trusted location)
 
 	// Writing the file to staging area. Do we loose anything in this process?
 	$staged_file_path = realpath('../staging').'/'.basename($p_url);
 	file_put_contents($staged_file_path , $file_in_a_string);
 
-	# First part of mime-type is interesting, second part is character set
+	// First part of mime-type is interesting, second part is character set
 	$mt = explode(";",$mime_type)[0];
 
-	// Purpose of the switch is to determine the method for loading the data in the DB
+	// Purpose of the switch: determine the method for loading the data in the DB
 	$method = "UNKNOWN";
-    //  b. Format (heuristics to recognise distributor or retailer)
+
+    //  b. Format (heuristics to recognise distributor / retailer)
     switch($mt) {
 	   case "application/pdf":
-	        //echo "PDF detected - processing as Origin file ..";
 	        $method = "ORIGIN1";
 	        break;
 	    case "text/plain":
-	        //echo "Plain text - needs further analysis to determine source ..";
+	    	// Further investigation needed as there are many providers of plan text files
 	        // Sniffing the first line of the file
 			$first_line = strtok($file_in_a_string, "\r\n");
 
@@ -69,101 +108,35 @@ try {
 	        break;
     }
 
-	// Client ID
-    //echo "Obtaining a client ID from the DB ... \n";
+	// Client ID - obtaining one from a sequence in the database
     $pb->advance(0.2,'Obtaining an ID from database...');
-	$sql = "select nextval('client_id_seq')";
-	$pgconn = pgConnection();
-    $recordSet = $pgconn->prepare($sql);
-    $recordSet->execute();
-    while ($row  = $recordSet->fetch())
-    {
-        $client_id = $row[0];
-    }
+	$client_id = singleValueDBQuery("select nextval('client_id_seq')");
 
     // 2) upload in our DB
     switch($method){
     	case "ORIGIN1":
 		    //  a. Into staging
-    		//echo "Loading ".$staged_file_path." ...\n";
 		    $pb->advance(0.3,'Extracting data from Origin PDF to database...');
     		$staging_script = shell_exec(realpath('../heatmap').'/load/origin.sh '.$staged_file_path.' '.realpath('../staging'));
-    		//echo "Returned output from staging script:".$staging_script."\n";
 
-    		// Extracting the penultimate line, it contains the start date
+    		// Extracting the penultimate line of the previous command output, it contains the start date
 			$lines=explode("\n", $staging_script);
 			$date_start = $lines[count($lines)-2];
-			//echo "Extracted date start:".$date_start."\n";
 
 		    // Properly formatted date
-		    //echo "Obtaining a client ID from the DB ... \n";
 		    $pb->advance(0.5,'Formatting the start date...');
-			$sql = "select to_char(to_date('".$date_start."','DD-Mon-YYYY'),'DD/MM/YYYY')";
-			$pgconn = pgConnection();
-		    $recordSet = $pgconn->prepare($sql);
-		    $recordSet->execute();
-		    while ($row  = $recordSet->fetch())
-		    {
-		        $date_start = $row[0];
-		    }
+			$date_start = singleValueDBQuery("select to_char(to_date('".$date_start."','DD-Mon-YYYY'),'DD/MM/YYYY')");
 
-		    //  b. From staging to overall consumption table
-		    if ($date_start && $client_id)
-		    {
-			    $pb->advance(0.6,'Loading staged data to main table...');
-			    //echo "Running the parameterised query to populate the consumption table ... \n";
-			    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-origin1.sql');
-
-			    // Variable substitution
-				$vars = array(
-				  '{$v_client_id}'	=> $client_id,
-				  '{$v_date_start}'	=> $date_start
-				);
-				$sql = strtr($query_in_a_string, $vars);
-				//echo $sql;
-
-				// Query in a string
-				$pgconn = pgConnection();
-			    $recordSet = $pgconn->prepare($sql);
-			    $recordSet->execute();
-		    }
     		break;
+
     	case "ORIGIN2":
 		    //  a. Into staging
 		    $pb->advance(0.3,'Loading Origin CSV data into database...');
     		$staging_script = shell_exec(realpath('../heatmap').'/load/origin-csv.sh '.$staged_file_path);
 
 		    // Properly formatted start date
-		    $pb->advance(0.4,'Formatting the start date...');
-			$sql = "select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);";
-			$pgconn = pgConnection();
-		    $recordSet = $pgconn->prepare($sql);
-		    $recordSet->execute();
-		    while ($row  = $recordSet->fetch())
-		    {
-		        $date_start = $row[0];
-		    }
-
-		    //  b. From staging to overall consumption table
-		    if ($date_start && $client_id)
-		    {
-			    $pb->advance(0.5,'Loading staged data to main table...');
-			    //echo "Running the parameterised query to populate the consumption table ... \n";
-			    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-origin2.sql');
-
-			    // Variable substitution
-				$vars = array(
-				  '{$v_client_id}'	=> $client_id,
-				  '{$v_date_start}'	=> $date_start
-				);
-				$sql = strtr($query_in_a_string, $vars);
-				//echo $sql;
-
-				// Query in a string
-				$pgconn = pgConnection();
-			    $recordSet = $pgconn->prepare($sql);
-			    $recordSet->execute();
-		    }
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
 
     		break;
 
@@ -173,36 +146,8 @@ try {
     		$staging_script = shell_exec(realpath('../heatmap').'/load/agl.sh '.$staged_file_path.' '.realpath('../staging'));
 
 		    // Properly formatted start date
-		    $pb->advance(0.4,'Formatting the start date...');
-			$sql = "select substring(startdate,1,position(' ' in startdate)-1) as startdate from staging_agl1 where id=(select min(a.id) from staging_agl1 a)";
-			$pgconn = pgConnection();
-		    $recordSet = $pgconn->prepare($sql);
-		    $recordSet->execute();
-		    while ($row  = $recordSet->fetch())
-		    {
-		        $date_start = $row[0];
-		    }
-
-		    //  b. From staging to overall consumption table
-		    if ($date_start && $client_id)
-		    {
-			    $pb->advance(0.5,'Loading staged data to main table...');
-			    //echo "Running the parameterised query to populate the consumption table ... \n";
-			    $query_in_a_string = file_get_contents(realpath('../heatmap').'/load/stc-agl.sql');
-
-			    // Variable substitution
-				$vars = array(
-				  '{$v_client_id}'	=> $client_id,
-				  '{$v_date_start}'	=> $date_start
-				);
-				$sql = strtr($query_in_a_string, $vars);
-				//echo $sql;
-
-				// Query in a string
-				$pgconn = pgConnection();
-			    $recordSet = $pgconn->prepare($sql);
-			    $recordSet->execute();
-		    }
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select substring(startdate,1,position(' ' in startdate)-1) as startdate from staging_agl1 where id=(select min(a.id) from staging_agl1 a)");
 
     		break;
     	case "LUMO":
@@ -210,6 +155,10 @@ try {
     	default:
     		$message = "Unknown loading method";
     }
+
+    //  b. From staging to overall consumption table
+    executeParamLoadQuery($method,$client_id,$date_start);
+
 
     //$pb->advance(0.8,'Cleaning up...');
     // 3) cleanup procedure (do not implement right now, to be able to see+fix errors)
