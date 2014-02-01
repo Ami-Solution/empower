@@ -1,0 +1,182 @@
+{
+	"authority":"AEMO",
+	"version":"7",
+	"date":"06/2012",
+	"participants":[
+		{
+			"id":"ACTEWP",
+			"name":"Actew Distribution Ltd and Jemena Networks (ACT) Pty Ltd",
+			"state":"ACT",
+			"from":7001000000,
+			"to":7001999999
+		},
+		{
+			"id":"CNRGYP",
+			"name":"Essential Energy (formerly Country Energy, Advance Energy)",
+			"state":"NSW",
+			"from":4001000000,
+			"to":4001999999
+		},
+		{
+			"id":"CNRGYP",
+			"name":"Essential Energy (formerly Country Energy, Australian Inland Energy)",
+			"state":"NSW",
+			"from":4508000000,
+			"to":4508099999
+		},
+		{
+			"id":"ENERGYAP",
+			"name":"Ausgrid (formerly Energy Australia)",
+			"state":"NSW",
+			"from":4102000000,
+			"to":4104999999
+		},
+		{
+			"id":"CNRGYP",
+			"name":"Essential Energy (formerly Country Energy, Great Southern Energy)",
+			"state":"NSW",
+			"from":4204000000,
+			"to":4204999999
+		},
+		{
+			"id":"INTEGP",
+			"name":"Endeavour Energy (formerly Integral Energy)",
+			"state":"NSW",
+			"from":4310000000,
+			"to":4319999999
+		},
+		{
+			"id":"CNRGYP",
+			"name":"Essential Energy (formerly Country Energy, NorthPower)",
+			"state":"NSW",
+			"from":4407000000,
+			"to":4407999999
+		},
+		{
+			"id":"TRANSGP",
+			"name":"TransGrid (formerly NSW Electricity Transmission Authority)",
+			"state":"NSW",
+			"from":4608100000,
+			"to":4608108999
+		},
+		{
+			"id":"SNOWY",
+			"name":"Snowy Hydro Limited",
+			"state":"NSW",
+			"from":4708109000,
+			"to":4708109999
+		},
+		{
+			"id":"",
+			"name":"Reserved block for Northern Territory",
+			"state":"NT",
+			"from":2500000000,
+			"to":2509999999
+		},
+		{
+			"id":"ENERGEXP",
+			"name":"ENERGEX Limited",
+			"state":"QLD",
+			"from":3100000000,
+			"to":3199999999
+		},
+		{
+			"id":"ERGONETP",
+			"name":"Ergon Energy Corporation Limited",
+			"state":"QLD",
+			"from":3000000000,
+			"to":3099999999
+		},
+		{
+			"id":"PLINKP",
+			"name":"Qld Electricity Transmission Corp (Powerlink)",
+			"state":"QLD",
+			"from":3202000000,
+			"to":3202009999
+		},
+		{
+			"id":"UMPLP",
+			"name":"ETSA Utilities",
+			"state":"SA",
+			"from":2001000000,
+			"to":2002999999
+		},
+		{
+			"id":"ETSATP",
+			"name":"ElectraNet SA",
+			"state":"SA",
+			"from":2102000000,
+			"to":2102009999
+		},
+		{
+			"id":"AURORAP",
+			"name":"Aurora Energy",
+			"state":"TAS",
+			"from":8000000000,
+			"to":8000999999
+		},
+		{
+			"id":"AURORAP",
+			"name":"Aurora Energy",
+			"state":"TAS",
+			"from":8590200000,
+			"to":8590399999
+		},
+		{
+			"id":"CITIPP",
+			"name":"CitiPower Pty",
+			"state":"VIC",
+			"from":6102000000,
+			"to":6103999999
+		},
+		{
+			"id":"EASTERN",
+			"name":"SP-Ausnet DNSP",
+			"state":"VIC",
+			"from":6305000000,
+			"to":6306999999
+		},
+		{
+			"id":"POWCP",
+			"name":"Powercor Australia",
+			"state":"VIC",
+			"from":6203000000,
+			"to":6204999999
+		},
+		{
+			"id":"SOLARISP",
+			"name":"Jemena Electricity Networks (Vic) Ltd",
+			"state":"VIC",
+			"from":6001000000,
+			"to":6001999999
+		},
+		{
+			"id":"UNITED",
+			"name":"United Energy Distribution Pty Ltd",
+			"state":"VIC",
+			"from":6407000000,
+			"to":6408999999
+		},
+		{
+			"id":"GPUPP",
+			"name":"SP-Ausnet TNSP",
+			"state":"VIC",
+			"from":6509000000,
+			"to":6509009999
+		},
+		{
+			"id":"",
+			"name":"Western Power",
+			"state":"WA",
+			"from":8001000000,
+			"to":8020999999
+		},
+		{
+			"id":"",
+			"name":"Horizon Power",
+			"state":"WA",
+			"from":8021000000,
+			"to":8021999999
+		}
+	]
+}

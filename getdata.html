@@ -16,6 +16,11 @@
       .well {
         margin:10px;
       }
+      .input-lg {
+        font-size: 22px;
+        width: 260px;
+        text-align:center;
+      }
     </style>
   </head>
   <body>
@@ -61,19 +66,16 @@
 
     <div class="container">
       <h1 style="text-align:center;">Check who has your data</h1>
-      <div class="row">
-        <div class="col-md-6 col-xs-6">
-          <form id="formPostcode" class="form-inline pull-right" role="form">
-            <div id="postcodeGroup" class="form-group">
-              <label class="sr-only" for="postcodeInput">Enter your postcode:</label>
-              <input type="email" class="form-control" id="postcodeInput" name="postcodeInput" placeholder="4-digit postcode, e.g. 3875">
-            </div>
-          </form>
-        </div>
-        <div class="col-md-6 col-xs-6">
-          <div id="yourUtility" class="pull-left">
+      <div class="text-center">
+        <form id="formNMI" class="form-inline" role="form">
+          <div id="nmiGroup" class="form-group">
+            <input type="email" class="form-control input-lg" id="nmiInput" name="nmiInput" placeholder="Type your 11-digit NMI">
           </div>
-        </div>  
+        </form>
+      </div>
+      <br>
+      <div id="yourUtility" class="text-center">
+      </div>
     </div>
 
     <br>
@@ -84,15 +86,99 @@
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="bootstrapvalidator/js/bootstrapValidator.min.js"></script>
     <script>
-      // Monitoring the postcode input field
-      // At the 4th character, send a JSON request
+      var nmi_participants;
+
+      // IE compatibility for the array filtering function
+      if (!Array.prototype.filter) {
+        Array.prototype.filter = function(fun /*, thisp*/) {
+          var len = this.length >>> 0;
+          if (typeof fun != "function")
+          throw new TypeError();
+
+          var res = [];
+          var thisp = arguments[1];
+          for (var i = 0; i < len; i++) {
+            if (i in this) {
+              var val = this[i]; // in case fun mutates this
+              if (fun.call(thisp, val, i, this))
+              res.push(val);
+            }
+          }
+          return res;
+        };
+      }
+
+      // Convenience string function
+      function isNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+      }
+
+      function digitSum(i){
+        var sum=0,istr = i.toString();
+        for (var j=0;j<istr.length;j++)
+        {
+          sum += parseInt(istr[j]);
+        }
+        return sum;
+      }
+
+      // Implementation adapted from 
+      // https://wiki.openmrs.org/display/docs/Check+Digit+Algorithm
+      // Test case from:
+      // http://www.aemo.com.au/Electricity/Policies-and-Procedures/Retail-and-Metering/~/media/Files/Other/electricityops/0610-0008%20pdf.ashx
+      function luhnCheckDigit(number) {
+        var validChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVYWXZ_";
+        number = number.toUpperCase().trim();
+        var sum = 0;
+        for (var i = 0; i < number.length; i++) {
+          var ch = number.charAt(number.length - i - 1);
+          if (validChars.indexOf(ch) < 0) {
+            alert("Invalid character(s) found!");
+            return false;
+          }
+          var digit = ch.charCodeAt(0);
+          var weight;
+          if (i % 2 == 0) {
+            weight = (2 * digit);
+          }
+          else {
+            weight = digit;
+          }
+          sum += digitSum(weight);
+        }
+        sum = Math.abs(sum) + 10;
+        var digit = (10 - (sum % 10)) % 10;
+        return digit;
+      };
+
+      // Validating a NMI using a checksum
+      function isValidNMI(nmi) {
+        var nmi_str = nmi.toString();
+
+        var nmi_without_cs = nmi_str.substring(0,10);
+        var checksum = parseInt(nmi_str.substring(10,11));
+
+        return (luhnCheckDigit(nmi_without_cs) == checksum);
+      }
+
+      // Monitoring the NMI input field
       $(document).ready(function() {
-          $('form').on('submit',function(event){
-            // In all cases, we disable the form submission
+          // Retrieving JSON file of NMI allocation
+          $.getJSON("data/json/nmi_allocation.json",
+            function(data){
+              if (data.participants)
+              {
+                nmi_participants = data.participants;
+              }
+            }
+          );
+
+          // In all cases, we disable the form submission
+          $('form').on('submit',function(event){  
             return false;
           });
 
-          $('#formPostcode').bootstrapValidator({
+          $('#formNMI').bootstrapValidator({
               // The default error message for all fields
               message: '',
 
@@ -102,52 +188,121 @@
               // The fields which need to be validated
               fields: {
                   // The field name (value of the "name" attribute)
-                  postcodeInput: {
+                  nmiInput: {
                       // The default error message for this field
                       message: ' ',
                       // Array of validators
                       validators: {
-                          digits:{
-                            message:'Only digits please e.g. 3875'
-                          },
-                          stringLength: {
-                            min:4,
-                            max:4,
-                            message:'Try a 4-digit postcode e.g. 3875'
-                          },
                           callback:{
                             callback: function(fieldValue, validator){
-                              if (fieldValue.length == 4)
+                              // Clearing error message and message
+                              $('#nmiGroup .help-block').html("").css("display","none");
+                              $('#nmiGroup').removeClass("has-success").removeClass("has-error");
+                              $('#yourUtility').html("").css("color","black");
+
+                              // Checking it's all digits that are being typed
+                              if (fieldValue.length == 0)
                               {
-                                // We send an AJAX request to the provider service
-                                $.getJSON(
-                                  "ws/ws_get_utility.php?postcode="+fieldValue,
-                                  function(json){
-                                    if (json.error)
+                                // Well type something in!
+                              }
+                              else if (!isNumber(fieldValue))
+                              {
+                                  $('#nmiGroup').addClass("has-error");
+                                  $('#yourUtility').html("Your NMI should only have digits.").css("color","red");   
+                              }
+                              else if (fieldValue.length == 1)
+                              {
+                                // Subsetting
+                                var participants_subset = $.grep(nmi_participants, function(e, index){
+                                  return e.from.toString().substring(0,1)==fieldValue;
+                                });
+
+                                // Participant subset join
+                                var result = $.unique(
+                                  $.map(participants_subset, function(o) {
+                                    return o.state;
+                                  })
+                                ).join(" or ");
+
+                                if (result)
+                                {
+                                  $('#nmiGroup').addClass("has-success");
+                                  $('#yourUtility').html("Someone in "+result+". Keep typing for more details");
+                                }
+                                else
+                                {
+                                  $('#nmiGroup').addClass("has-error");
+                                  $('#yourUtility').html("Hummm.. No NMI in Australia starts with "+fieldValue+". Is it your NMI you're typing in?").css("color","red");                                   
+                                }
+                              }
+                              else if (fieldValue.length > 1 && fieldValue.length<=11)
+                              {
+                                // Field value to consider
+                                var fv = fieldValue;
+                                if (fv.length==11)
+                                {
+                                  fv = fieldValue.substring(0,10);                                  
+                                } 
+
+                                // Subsetting
+                                var participants_subset = $.grep(nmi_participants, function(e, index){
+                                  return parseInt(e.from.toString().substring(0,fv.length)) <= parseInt(fv)
+                                      && parseInt(e.to.toString().substring(0,fv.length)) >= parseInt(fv);
+                                });
+
+                                // Participant subset join
+                                var result = $.unique(
+                                  $.map(participants_subset, function(o) {
+                                    return o.name;
+                                  })
+                                );
+
+                                if (result.length > 1)
+                                {
+                                  //
+                                  $('#nmiGroup').addClass("has-success");
+                                  $('#yourUtility').html("Keep typing for more details");
+                                } else if (result.length == 1 || fieldValue.length==11)
+                                {
+                                  //
+                                  $('#nmiGroup').addClass("has-success");
+                                  $('#yourUtility').html("You can contact <b>"+result[0]+"</b>");                                  
+
+                                  if (fieldValue.length == 11)
+                                  {
+                                    // NMI checksum
+                                    if (isValidNMI(fieldValue))
                                     {
-                                      $('#postcodeGroup .help-block').html(json.error).css("display","block");
-                                      $('#postcodeGroup').removeClass("has-success").addClass("has-error");
-                                      $('#yourUtility').html("");
+                                      $('#yourUtility').html($('#yourUtility').html()+" with this NMI (you typed it right)!");
                                     }
-                                    if (json.rows)
+                                    else
                                     {
-                                      var utilityStr = "";
-                                      for (var i=0;i<json.rows.length;i++)
-                                      {
-                                        utilityStr += json.rows[i].distributor;
-                                        if (i < json.rows.length - 1)
-                                        {
-                                          utilityStr += ", ";
-                                        }
-                                      }
-                                      $('#yourUtility').html(utilityStr);
+                                      $('#nmiGroup').removeClass("has-success").addClass("has-error");
+                                      $('#yourUtility').html($('#yourUtility').html()+" but check the NMI you typed above (it's not valid)").css("color","red");                                  
                                     }
                                   }
-                                );
+                                  else
+                                  {
+                                    $('#yourUtility').html($('#yourUtility').html()+". Keep typing to check your NMI is valid.");
+                                  }
+                                } else if (result.length == 0)
+                                {
+                                  //
+                                  $('#nmiGroup').addClass("has-error");
+                                  $('#yourUtility').html("Hummm.. None is in charge of this NMI. Did you type it correctly?").css("color","red");                                  
+                                }
                               }
-                              else
+                              else 
                               {
-                                $('#yourUtility').html("");
+                                // Too long! Do something about it!
+                                $('#nmiGroup').addClass("has-error");
+                                $('#yourUtility').html("Your NMI cannot be longer than 11 digits.").css("color","red");                                
+
+                                setTimeout(function(){
+                                  // Does that re-trigger validation?
+                                  $('#nmiInput').val(fieldValue.substring(0,11));
+                                  $('#formNMI').submit();
+                                },1000);
                               }
                             }
                           }
