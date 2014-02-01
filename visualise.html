@@ -79,6 +79,7 @@
 
     <div class="container">
         <h1>Upload your Smart Meter Data anonymously:</h1>
+        <br>
 
         <!-- The fileinput-button span is used to style the file input field as button -->
         <span class="btn btn-success fileinput-button">
@@ -103,6 +104,7 @@
     <div id="myheatmap_title" class="container">
         <h1>... to visualise your data (example):</h1>
     </div>
+    <br>
     <div id="myheatmap" class="container">
       <img src="images/heatmap-example.png" class="img-responsive" alt="Smart Meter Data heatmap" class="img-rounded">
     </div>
@@ -169,7 +171,7 @@
                 if (json_data.client_id)
                 {
                     var heatmap_iframe = $('<iframe>')
-                        .attr('src', '../heatmap/index.html?client_id='+json_data.client_id)
+                        .attr('src', 'heatmap/index.html?client_id='+json_data.client_id)
                         .attr('style','height:700px;width:100%;')
                         .attr('frameBorder','0');
 
@@ -218,6 +220,10 @@
             previewMaxHeight: 100,
             previewCrop: true
         }).on('fileuploadadd', function (e, data) {
+            // Setting the progress bar to 0 (is it possible without animation?)
+            updateProgress(0,"Uploading...");
+            // Not keeping a list of previously uploaded files
+            $('#files').empty();
             data.context = $('<div/>').appendTo('#files');
             $.each(data.files, function (index, file) {
                 var node = $('<p/>')
@@ -257,38 +263,9 @@
                         .wrap(link);
                     */
 
-                    // That's where we should do further processing
-                    // 1) file detection
-                    //  a. Type (PDF/txt)
-                    //  b. Format (heuristics to recognise distributor or retailer)
-                    // 2) upload in our DB
-                    //  a. Into staging
-                    //  b. From staging to overall consumption table
-                    // 3) cleanup procedure
-                    //  a. Remove uploaded file
-                    //  b. Remove staged data
-                    // 4) User information
-                    //  a. Upload complete
-                    //  b. Link to the newly uploaded data
-
+                    // Progress is sent by script tag injection
+                    // Direct commands can be sent with a progress > 1
                     execWithProgress(file.url);
-                    /*
-                    $.getJSON("ws/ws_process_smd_file.php",
-                        {
-                            url: file.url
-                        },
-                        function(r){
-                            if (r)
-                            {
-                                //alert("Process terminated with message:"+r.message);
-                                if (r.client_id)
-                                {
-                                    window.location="heatmap/index.html?client_id="+r.client_id;
-                                }
-                            }
-                        }
-                    );
-                    */
 
                 } else if (file.error) {
                     var error = $('<span class="text-danger"/>').text(file.error);
