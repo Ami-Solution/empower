@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Empower.me</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" hrf="jqplot/jquery.jqplot.min.css" />
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+    <style>
+      .well {
+        margin-top:10px;
+      }
+
+      .plot {
+          margin-bottom: 0px;
+          margin-left:auto;
+          margin-right:auto;
+      }
+
+      .mycontent{
+        text-align:center;
+        font-size:30px;
+      }
+
+      .content-label {
+        color:#AAAAAA;
+      }
+
+      .dropdown-menu {
+        font-size:18px;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="text-center well">
+        <!-- Split button for state filtering -->
+        <div class="btn-group text-left">
+          <button id="stateFilterBtn" type="button" class="btn btn-lg btn-default dropdown-toggle" data-toggle="dropdown">
+            Pick a state <span class="caret"></span>
+          </button>
+          <ul id="stateFilter" class="dropdown-menu" role="menu">
+            <li><a href="#" data-state="NSW">New South Wales</a></li>
+            <li><a href="#" data-state="QLD">Queensland</a></li>
+            <li><a href="#" data-state="SA">South Australia</a></li>
+            <li><a href="#" data-state="TAS">Tasmania</a></li>
+            <li><a href="#" data-state="VIC">Victoria</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- A container for a 7-day list/grid/table -->
+    <div id="my7dayoutlook" class="container">
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="../bootstrap/js/bootstrap.min.js"></script> 
+    <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.meterGaugeRenderer.min.js"></script>
+    <!-- Getting current client IP -->
+    <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
+    <script>
+      // Global
+      var myCurrentState;
+      var stateAbbrev = {
+        "Victoria" :          "VIC",
+        "New South Wales" :   "NSW",
+        "Queensland" :        "QLD",
+        "Tasmania" :          "TAS",
+        "South Australia" :   "SA"
+      };
+
+      // Helper class for correct date display
+      function getDayName(dt)
+      {
+        var d = new Date(dt);
+        var weekday=new Array(7);
+        weekday[0]="Sunday";
+        weekday[1]="Monday";
+        weekday[2]="Tuesday";
+        weekday[3]="Wednesday";
+        weekday[4]="Thursday";
+        weekday[5]="Friday";
+        weekday[6]="Saturday";
+
+        var month=new Array();
+        month[0]="January";
+        month[1]="February";
+        month[2]="March";
+        month[3]="April";
+        month[4]="May";
+        month[5]="June";
+        month[6]="July";
+        month[7]="August";
+        month[8]="September";
+        month[9]="October";
+        month[10]="November";
+        month[11]="December";
+
+        var daysuffix=new Array();
+        for (var k=1;k<=31;k++)
+        {
+          daysuffix[k] = "th";
+          if (k % 10 == 1)
+          {
+            daysuffix[k] = "st";
+          }
+          if (k % 10 == 2)
+          {
+            daysuffix[k] = "nd";
+          }          
+          if (k % 10 == 3)
+          {
+            daysuffix[k] = "rd";
+          }
+        }
+
+        return weekday[d.getDay()]+" "+d.getDate()+daysuffix[d.getDate()];
+      }
+
+      // Helper class for number formatting
+      function numberWithCommas(x) {
+          return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
+
+      function pumpADayDiv(idx,e1,e2,e3){
+        var h = '<div id="day'+idx+'" class="panel panel-default"> \
+                  <div class="panel-heading"> \
+                    <h3 class="panel-title">'+e1+'</h3> \
+                  </div> \
+                  <div class="table-responsive"> \
+                    <table class="table"> \
+                      <tr> \
+                        <td> \
+                          <div id="chart'+idx+'" class="plot"></div> \
+                        </td> \
+                        <td class="mycontent" style="text-align:right;vertical-align: middle;"> \
+                          <p class="list-group-item-text"><span class="content-label">Peak Demand:</span></p> \
+                          <p class="list-group-item-text"><span class="content-label">To be reached at:</span></p> \
+                        </td> \
+                        <td class="mycontent" style="text-align:left;vertical-align: middle;"> \
+                          <p class="list-group-item-text"><span class="content-label"><b>'+e2+' MWh</b></p> \
+                          <p class="list-group-item-text"><span class="content-label"><b>'+e3+'</b></p> \
+                        </td> \
+                      </tr> \
+                    </table> \
+                  </div> \
+                </div>';
+        return h;
+      }
+
+      $(window).load(function(){
+        $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?",
+          function(data)
+          {
+            if (data.region_name)
+            {
+              // Select the corresponding state in the drop down
+              //alert("You are in "+data.region_name);
+              myCurrentState = stateAbbrev[data.region_name];
+
+              // Get the forecast data after having identified the state
+              // Is that reasonable?
+              getForecast();
+            }
+          }
+        );
+
+        function getForecast() {
+          // Retrieving the forecast data values
+          $.getJSON("../data/json/aemo-forecast-7days.json",
+            function(data){
+              if (data)
+              {
+                // Make a button out of the state
+                $('.btn-group').button();
+
+                $('#stateFilter a').on("click", function() { 
+                  // Retrieving state
+                  var state = $(this).attr('data-state');
+                  // Managing active status by adding class
+                  $('#stateFilter a').removeClass("active");
+                  $(this).addClass("active");
+                  // Changing label of state filter button
+                  $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
+
+                  renderData(data,state);
+                });
+
+                // If the state is known at this stage, go there!
+                if (myCurrentState)
+                {
+                  $("#stateFilter a[data-state='"+myCurrentState+"']").click();
+                }
+              }
+            }
+          );
+        }
+
+        // Choice of intervals should be based on historical figures for demand:
+        // Minimum, average, (average+peak)/2, peak
+        // Many ways to choose these values
+        var intervals = {
+          "VIC":[3000,5000,7500,10000],
+          "NSW":[],
+          "QLD":[],
+          "SA": [],
+          "TAS":[]
+        };
+
+
+        function renderData(json,state){
+          var data_day = json[state];
+          var data_time, data_qty;
+          var day_ct = 0;
+
+          // Emptying the list
+          $('#my7dayoutlook').empty();
+
+          for (var day in data_day) {
+            // Day counter starts at 1
+            day_ct++;
+
+            if (data_day.hasOwnProperty(day)) {
+              // For this date, we know loop on the time of the day
+              data_time = data_day[day];
+              var pDmd = 0;
+              var pDmdTime = "";
+
+              for (var time in data_time) {
+                if (data_time.hasOwnProperty(time)) {
+                  // For this time, we have a number of quantities
+                  data_qty = data_time[time];
+                  if (data_qty.demand>pDmd)
+                  {
+                    pDmd = data_qty.demand;
+                    pDmdTime = time;
+                  }
+                }
+              }
+
+              // if ct=1, the day is tomorrow
+              if (day_ct==1)
+              {
+                day = "Tomorrow";
+              }
+              else
+              {
+                day = getDayName(day);
+              }
+              // Pushing the values in the page
+              var d = pumpADayDiv(day_ct,day,numberWithCommas(pDmd),pDmdTime.substring(0,5));
+              $('#my7dayoutlook').append($(d));
+
+              var panelStylingClass="";
+              // Rendeing the panels
+              if (pDmd < 5000)
+              {
+                panelStylingClass = "panel-success";
+              }
+              else if (pDmd < 7500)
+              {
+                panelStylingClass = "panel-warning";
+              }
+              else
+              {
+                panelStylingClass = "panel-danger";
+              }
+
+              $('#day'+day_ct).addClass(panelStylingClass);
+
+              // Rendering the gauge
+              $('#chart'+day_ct).css({"width":"300px","height":"180px"});
+
+              plot1 = $.jqplot('chart'+day_ct,[[pDmd]],{
+                 seriesDefaults: {
+                   renderer: $.jqplot.MeterGaugeRenderer,
+                   rendererOptions: {
+                     min: 0,
+                     max: 10000,                   
+                     showTickLabels: intervals[state],
+                     intervals: intervals[state],
+                     intervalColors:['#AAAAAA','#66cc66', '#E7E658', '#cc6666']
+                   }
+                 }
+               });
+            }
+          }
+
+        }
+
+      });
+
+    </script>
+  </body>
+</html>
