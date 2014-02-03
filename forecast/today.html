@@ -176,7 +176,10 @@
 
         function getForecast() {
           // Retrieving the forecast data values
-          $.getJSON("../data/json/aemo-dmd-price-30mn.json",
+          $.getJSON("../data/json/aemo-dmd-price-30mn.json",{
+              // cache buster
+              _dc: (new Date()).getTime()
+            },
             function(data){
               if (data)
               {
