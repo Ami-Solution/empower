@@ -83,12 +83,16 @@
     <script type="text/javascript" src="jqplot/plugins/jqplot.dateAxisRenderer.min.js"></script>
     <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
     <script type="text/javascript" src="jqplot/plugins/jqplot.canvasOverlay.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
 
     <!-- Getting current client IP -->
     <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
     <script>
       // Global
       var myCurrentState;
+      var gtodayOnly = true;
       var stateAbbrev = {
         "Victoria" :          "VIC",
         "New South Wales" :   "NSW",
@@ -188,7 +192,7 @@
                   // Changing label of state filter button
                   $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
 
-                  renderData(data,state);
+                  renderData(data,state,gtodayOnly);
                 });
 
                 // If the state is known at this stage, go there!
@@ -201,38 +205,43 @@
           );
         }
 
-        function renderData(json,state){
+        function renderData(json,state,todayOnly){
           var data_day = json[state];
           var data_time, data_qty;
           var day_ct = 0;
-          var line1=[],colorArray=[];
+          var line1=[];
+          var today, today_str, tomorrow, tomorrow_str;
+
+          if (todayOnly)
+          {
+            today = new $.jsDate();
+            today_str = today.strftime('%Y/%m/%d');
+            tomorrow = today.add(1,'day');
+            tomorrow_str = tomorrow.strftime('%Y/%m/%d');
+          }
 
           // Emptying the list
           $('#my2dayrolling').empty();
 
           for (var day in data_day) {
-            // Day counter starts at 1
-            day_ct++;
-
             if (data_day.hasOwnProperty(day)) {
-              // For this date, we know loop on the time of the day
-              data_time = data_day[day];
-              var pDmd = 0;
-              var pDmdTime = "";
+              // Day counter starts at 1
+              if (!todayOnly || (todayOnly && (day == today_str)) || (todayOnly && (day == tomorrow_str)))
+              {
+                // For this date, we know loop on the time of the day
+                data_time = data_day[day];
 
-              for (var time in data_time) {
-                if (data_time.hasOwnProperty(time)) {
-                  // For this time, we have a number of quantities
-                  data_qty = data_time[time];
-                  pt_data = new Array(day+" "+time,parseFloat(data_qty.demand));
-                  line1.push(pt_data);
-                  if (data_qty.type=="TRADE")
-                  {
-                    colorArray.push('#AAAAAA');
-                  }
-                  else
-                  {
-                    colorArray.push('#0000FF');
+                for (var time in data_time) {
+                  if (data_time.hasOwnProperty(time)) {
+                    // For this time, we have a number of quantities
+                    data_qty = data_time[time];
+                    pt_data = new Array(day+" "+time,parseFloat(data_qty.demand));
+                    line1.push(pt_data);
+                    // Breaking out of the loop if todayOnly and day is tomorrow
+                    if (todayOnly && (day == tomorrow_str))
+                    {
+                      break;
+                    }
                   }
                 }
               }
@@ -242,10 +251,10 @@
           //var line1=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
 
           // Rendering the gauge
-          $('#my2dayrolling').css({"width":"800px","height":"380px"});
+          $('#my2dayrolling').css({"width":"700px","height":"380px"});
 
           var plot2 = $.jqplot('my2dayrolling', [line1], {
-            title:'Current Demand (1-day history + 1-day forecast)',
+            title:'Today\'s Demand Profile',
             canvasOverlay: {
               show: true,
               objects: [
@@ -264,12 +273,12 @@
                 {
                   line:
                   {
-                      start : [new Date(line1[0][0]).getTime(),0],                                                
-                      stop : [new $.jsDate().getTime(),0],                                                
-                      lineWidth: 380*2,
-                      color: 'rgba(200, 200, 200,0.25)',
-                      shadow: false,
-                      lineCap : 'butt'
+                    start : [new Date(line1[0][0]).getTime(),0],                                                
+                    stop : [new $.jsDate().getTime(),0],                                                
+                    lineWidth: 380*2,
+                    color: 'rgba(200, 200, 200,0.25)',
+                    shadow: false,
+                    lineCap : 'butt'
                   }
                 }                
               ]
@@ -277,20 +286,34 @@
             axes:{
               xaxis:{
                 renderer:$.jqplot.DateAxisRenderer, 
-                tickOptions:{formatString:'%#H:%M'},
-                min: line1[0][0], 
+                tickOptions:{
+                  formatString:'%#H:%M',
+                  angle:-45
+                },
+                tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+                // Starting at the first element (it is needed)
+                min: line1[0][0],
+                // Finishing at the last element (it is needed)
+                max: line1[line1.length-1][0],
                 tickInterval:'2 hours'
               },
               yaxis:{
-                tickOptions:{formatString:'%.0f MWh'},
+                tickOptions:{
+                  formatString:'%.0f',
+                  labelPosition: 'middle'
+                },
+                tickRenderer: $.jqplot.CanvasAxisTickRenderer,
                 min:0,
+                label: 'Demand (MW)',
+                labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                showMinorTicks: true
               }
             },
             highlighter: {
               show: true,
               sizeAdjust: 7.5,
               formatString:'<table class="jqplot-highlighter"> \
-                              <tr><td>At </td><td>%s</td><td>:</td><td>%s</td></tr> \
+                              <tr><td>At </td><td>%s</td><td>:</td><td>%s MW</td></tr> \
                             </table>'
             },            
             series:[{
@@ -298,12 +321,12 @@
               rendererOptions:{smooth: true}, 
               showMarker:false,
             }]
-            //,seriesColors: colorArray
           });
 
           // Adjusting the distance between axis and tick labels
-          $('.jqplot-axis.jqplot-yaxis').css("left","-10px");
-          $('.jqplot-axis.jqplot-xaxis').css("bottom","-10px");
+          $('.jqplot-axis.jqplot-yaxis').css("left","10px");
+          $('.jqplot-yaxis-label').css("left","-25px");
+          $('.jqplot-axis.jqplot-xaxis').css("bottom","-5px");
 
         }
       });
