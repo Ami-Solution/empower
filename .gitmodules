@@ -1,3 +1,6 @@
 [submodule "heatmap"]
 	path = heatmap
 	url = git@github.com:hsenot/heatmap.git
+[submodule "data/aemo-json"]
+	path = data/aemo-json
+	url = git@github.com:hsenot/aemo-json.git
