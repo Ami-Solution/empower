@@ -170,17 +170,18 @@
               // Select the corresponding state in the drop down
               //alert("You are in "+data.region_name);
               myCurrentState = stateAbbrev[data.region_name];
-
-              // Get the forecast data after having identified the state
-              // Is that reasonable?
-              getForecast();
             }
+
+            // Get the forecast data after having identified the state
+            // But sometimes the state is not detected => get the forecast anyway
+            getForecast();
+            
           }
         );
 
         function getForecast() {
           // Retrieving the forecast data values
-          $.getJSON("../data/json/aemo-forecast-7days.json",{
+          $.getJSON("../data/aemo-json/aemo-forecast-7days.json",{
               // cache buster
               _dc: (new Date()).getTime()
             },
