@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Empower.me</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" hrf="jqplot/jquery.jqplot.min.css" />
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+    <style>
+      .well {
+        margin-top:10px;
+      }
+
+      .dropdown-menu {
+        font-size:18px;
+      }
+
+      .jqplot-yaxis {
+        position: absolute;
+        left: -10px;
+      }
+
+      .jqplot-xaxis-tick {
+        font-size:10px;
+        font-weight:bold;
+        color:#AAAAAA;
+      }
+
+      .jqplot-yaxis-tick {
+        font-size:12px;
+        font-weight:bold;
+        color:#AAAAAA;
+        text-align:center;
+        line-height: 1;
+      }
+
+      .jqplot-title {
+        font-size:18px;
+      }
+
+      .jqplot-highlighter-tooltip{
+        background-color: #EEEEEE
+      }
+
+      #chart-0 {
+        display:none;
+      }
+      #chart-1 {
+        display:none;
+      }
+
+
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="text-center well">
+        <!-- Split button for state filtering -->
+        <div class="btn-group text-left">
+          <button id="stateFilterBtn" type="button" class="btn btn-lg btn-default dropdown-toggle" data-toggle="dropdown">
+            Pick a state <span class="caret"></span>
+          </button>
+          <ul id="stateFilter" class="dropdown-menu" role="menu">
+            <li><a href="#" data-state="NSW">New South Wales</a></li>
+            <li><a href="#" data-state="QLD">Queensland</a></li>
+            <li><a href="#" data-state="SA">South Australia</a></li>
+            <li><a href="#" data-state="TAS">Tasmania</a></li>
+            <li><a href="#" data-state="VIC">Victoria</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- A container for a 7-day list/grid/table -->
+    <div class="container text-center">
+        <iframe id="myhistory" src="" style="diplay:none;" width="820" height="520" frameborder="0"></iframe>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="../bootstrap/js/bootstrap.min.js"></script> 
+    <!-- Getting current client IP -->
+    <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
+    <script>
+      // Global
+      var myCurrentState;
+      var gtodayOnly = true;
+      var stateAbbrev = {
+        "Victoria" :          "VIC",
+        "New South Wales" :   "NSW",
+        "Queensland" :        "QLD",
+        "Tasmania" :          "TAS",
+        "South Australia" :   "SA"
+      };
+
+      function pumpAGraphScript(state){
+        var g = '';
+        return g;
+      }
+
+      $(window).load(function(){
+
+        $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?",
+          function(data)
+          {
+            if (data.region_name)
+            {
+              // Select the corresponding state in the drop down
+              //alert("You are in "+data.region_name);
+              myCurrentState = stateAbbrev[data.region_name];
+            }
+
+            // Get the forecast data after having identified the state
+            // But sometimes the state is not detected => get the forecast anyway
+            getHistory();
+
+          }
+        );
+
+        function getHistory() {
+          // Make a button out of the state
+          $('.btn-group').button();
+
+          $('#stateFilter a').on("click", function() { 
+            // Retrieving state
+            var state = $(this).attr('data-state');
+            // Managing active status by adding class
+            $('#stateFilter a').removeClass("active");
+            $(this).addClass("active");
+            // Changing label of state filter button
+            $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
+
+            renderData(state);
+          });
+
+          // If the state is known at this stage, go there!
+          if (myCurrentState)
+          {
+            $("#stateFilter a[data-state='"+myCurrentState+"']").click();
+          }
+        }
+
+        function renderData(state){
+          $('#myhistory').attr('src',state+'.html');
+        }
+
+      });
+    </script>
+  </body>
+</html>
