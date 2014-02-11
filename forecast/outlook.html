@@ -217,11 +217,11 @@
         // Minimum, average, (average+peak)/2, peak
         // Many ways to choose these values
         var intervals = {
-          "VIC":[3000,5000,7500,10000],
-          "NSW":[],
-          "QLD":[],
-          "SA": [],
-          "TAS":[]
+          "VIC":[3500,5600,8000,10400],
+          "NSW":[5400,8000,10000,12000],
+          "QLD":[4400,6000,7200,8400],
+          "SA": [800,1500,2400,3300],
+          "TAS":[600,1100,1350,1700]
         };
 
 
@@ -270,11 +270,11 @@
 
               var panelStylingClass="";
               // Rendeing the panels
-              if (pDmd < 5000)
+              if (pDmd < intervals[state][1])
               {
                 panelStylingClass = "panel-success";
               }
-              else if (pDmd < 7500)
+              else if (pDmd < intervals[state][2])
               {
                 panelStylingClass = "panel-warning";
               }
@@ -293,7 +293,7 @@
                    renderer: $.jqplot.MeterGaugeRenderer,
                    rendererOptions: {
                      min: 0,
-                     max: 10000,                   
+                     max: intervals[state][-1],                   
                      showTickLabels: intervals[state],
                      intervals: intervals[state],
                      intervalColors:['#AAAAAA','#66cc66', '#E7E658', '#cc6666']
