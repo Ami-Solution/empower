@@ -91,7 +91,7 @@
     <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
     <script>
       // Global
-      var myCurrentState;
+      var myCurrentState, solarData;
       var gtodayOnly = true;
       var stateAbbrev = {
         "Victoria" :          "VIC",
@@ -149,6 +149,17 @@
         return weekday[d.getDay()]+" "+d.getDate()+daysuffix[d.getDate()];
       }
 
+      Date.prototype.jqPlotDateAxisFormat = function() {
+                                    
+            var yyyy = this.getFullYear().toString();
+            var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+            var dd  = this.getDate().toString();
+            var hh = this.getHours().toString();                                    
+            var mi = this.getMinutes().toString();
+
+            return yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]) + ' ' + (hh[1]?hh:"0"+hh[0]) + ':' + (mi[1]?mi:"0"+mi[0]) + ':00';
+       };  
+
       // Helper class for number formatting
       function numberWithCommas(x) {
           return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -157,6 +168,54 @@
       $(window).load(function(){
         // Sure if that's needed
         $.jqplot.config.enablePlugins = true;
+
+        $.getJSON("../data/api-json/now.json",
+          function(data)
+          {
+            if (data.output)
+            {
+              // Re-formatting the line data to fit the model:
+              // so that:
+              // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
+              solarData={
+                "VIC":[],
+                "NSW":[],
+                "SA":[],
+                "QLD":[],
+                "TAS":[]
+              }
+              for (var k=0;k<data.output.length;k++)
+              {
+                var dt = new Date(Date.parse(data.output[k].ts));
+                var dt_fmt;
+
+                // Adjustment to 30mn interval (assumption: starting at 0)
+                var intervalInMn = 30;
+                if (dt.getMinutes() % intervalInMn == 0)
+                {
+                  qty_vic = data.output[k].vic;
+                  qty_nsw = data.output[k].nsw;
+                  qty_sa = data.output[k].sa;
+                  qty_qld = data.output[k].qld;
+                  qty_tas = data.output[k].tas;
+                  dt_fmt = dt.jqPlotDateAxisFormat();
+                }
+                else
+                {
+                  continue;
+                }
+
+                solarData["VIC"].push([dt_fmt,qty_vic]);
+                solarData["NSW"].push([dt_fmt,qty_nsw]);
+                solarData["SA"].push([dt_fmt,qty_sa]);
+                solarData["QLD"].push([dt_fmt,qty_qld]);
+                solarData["TAS"].push([dt_fmt,qty_tas]);
+              }
+            }
+
+          }
+        );
+
 
         $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?",
           function(data)
@@ -213,7 +272,7 @@
           var data_day = json[state];
           var data_time, data_qty;
           var day_ct = 0;
-          var line1=[];
+          var line1=[], line2 = solarData[state];
           var today, today_str, tomorrow, tomorrow_str;
 
           if (todayOnly)
@@ -257,8 +316,12 @@
           // Rendering the gauge
           $('#my2dayrolling').css({"width":"700px","height":"380px"});
 
-          var plot2 = $.jqplot('my2dayrolling', [line1], {
+          var plot2 = $.jqplot('my2dayrolling', [line1,line2], {
             title:'Today\'s Demand Profile',
+            stackSeries: true,
+            seriesDefaults: {
+              fill: true,
+            },
             canvasOverlay: {
               show: true,
               objects: [
