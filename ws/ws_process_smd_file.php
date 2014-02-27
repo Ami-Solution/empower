@@ -33,6 +33,7 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    $corr = array(
 	    	"ORIGIN1" 	=> "origin1",
 	    	"ORIGIN2" 	=> "origin2",
+	    	"JEMENA"	=> "origin2",
 	    	"AGL"		=> "agl"
 	    );
 
@@ -88,12 +89,17 @@ try {
 
 			// Library of smart meter data file headers
 	        $line1_origin2 = 'NMI,METER SERIAL NUMBER,CON/GEN,DATE,ESTIMATED?,00:00 - 00:30,00:30 - 01:00,01:00 - 01:30,01:30 - 02:00,02:00 - 02:30,02:30 - 03:00,03:00 - 03:30,03:30 - 04:00,04:00 - 04:30,04:30 - 05:00,05:00 - 05:30,05:30 - 06:00,06:00 - 06:30,06:30 - 07:00,07:00 - 07:30,07:30 - 08:00,08:00 - 08:30,08:30 - 09:00,09:00 - 09:30,09:30 - 10:00,10:00 - 10:30,10:30 - 11:00,11:00 - 11:30,11:30 - 12:00,12:00 - 12:30,12:30 - 13:00,13:00 - 13:30,13:30 - 14:00,14:00 - 14:30,14:30 - 15:00,15:00 - 15:30,15:30 - 16:00,16:00 - 16:30,16:30 - 17:00,17:00 - 17:30,17:30 - 18:00,18:00 - 18:30,18:30 - 19:00,19:00 - 19:30,19:30 - 20:00,20:00 - 20:30,20:30 - 21:00,21:00 - 21:30,21:30 - 22:00,22:00 - 22:30,22:30 - 23:00,23:00 - 23:30,23:30 - 00:00';
+	        $line1_jemena =  '"NMI","METER SERIAL NUMBER","CON/GEN","DATE","ESTIMATED?","00:00 - 00:30","00:30 - 01:00","01:00 - 01:30","01:30 - 02:00","02:00 - 02:30","02:30 - 03:00","03:00 - 03:30","03:30 - 04:00","04:00 - 04:30","04:30 - 05:00","05:00 - 05:30","05:30 - 06:00","06:00 - 06:30","06:30 - 07:00","07:00 - 07:30","07:30 - 08:00","08:00 - 08:30","08:30 - 09:00","09:00 - 09:30","09:30 - 10:00","10:00 - 10:30","10:30 - 11:00","11:00 - 11:30","11:30 - 12:00","12:00 - 12:30","12:30 - 13:00","13:00 - 13:30","13:30 - 14:00","14:00 - 14:30","14:30 - 15:00","15:00 - 15:30","15:30 - 16:00","16:00 - 16:30","16:30 - 17:00","17:00 - 17:30","17:30 - 18:00","18:00 - 18:30","18:30 - 19:00","19:00 - 19:30","19:30 - 20:00","20:00 - 20:30","20:30 - 21:00","21:00 - 21:30","21:30 - 22:00","22:00 - 22:30","22:30 - 23:00","23:00 - 23:30","23:30 - 00:00"';
+
 			$line1_agl = '"AccountNumber","NMI","DeviceNumber","DeviceType","RegisterCode","RateTypeDescription","StartDate","EndDate","ProfileReadValue","RegisterReadValue","QualityFlag",';
 
 			switch($first_line)
 			{
 				case $line1_origin2:
 					$method = "ORIGIN2";
+					break;
+				case $line1_jemena:
+					$method = "JEMENA";
 					break;
 				case $line1_agl:
 					$method = "AGL";
@@ -109,7 +115,7 @@ try {
     }
 
 	// Client ID - obtaining one from a sequence in the database
-    $pb->advance(0.2,'Obtaining an ID from database...');
+    $pb->advance(0.2,'Obtaining an ID from database...('.$method.')');
 	$client_id = singleValueDBQuery("select nextval('client_id_seq')");
 
     // 2) upload in our DB
@@ -126,6 +132,17 @@ try {
 		    // Properly formatted date
 		    $pb->advance(0.5,'Formatting the start date...');
 			$date_start = singleValueDBQuery("select to_char(to_date('".$date_start."','DD-Mon-YYYY'),'DD/MM/YYYY')");
+
+    		break;
+
+    	case "JEMENA":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading Jemena CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/origin-csv.sh '.$staged_file_path);
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
 
     		break;
 
