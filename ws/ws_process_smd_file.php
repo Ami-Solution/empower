@@ -71,7 +71,8 @@ try {
 	file_put_contents($staged_file_path , $file_in_a_string);
 
 	// First part of mime-type is interesting, second part is character set
-	$mt = explode(";",$mime_type)[0];
+	$mt_arr = explode(';',$mime_type);
+	$mt = $mt_arr[0];
 
 	// Purpose of the switch: determine the method for loading the data in the DB
 	$method = "UNKNOWN";
@@ -184,6 +185,14 @@ try {
 }
 catch (Exception $e) {
 	trigger_error("Caught Exception: " . $e->getMessage(), E_USER_ERROR);
+
+	$to      = 'error@empowerme.org.au';
+	$subject = 'PHP processing error';
+	$message = $e->getMessage();
+	$headers = 'From: webmaster@empowerme.org.au' . "\r\n" .
+    		'Reply-To: webmaster@empowerme.org.au' . "\r\n" .
+    		'X-Mailer: PHP/' . phpversion();
+	mail($to, $subject, $message, $headers);
 }
 
 ?>
