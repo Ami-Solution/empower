@@ -41,7 +41,7 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    $corr = array(
 	    	"ORIGIN1" 	=> "origin1",
 	    	"ORIGIN2" 	=> "origin2",
-	    	"JEMENA"	=> "origin2",
+	    	"JEMENA"	=> "jemena",
 	    	"AGL"		=> "agl"
 	    );
 
@@ -148,11 +148,11 @@ try {
     	case "JEMENA":
 		    //  a. Into staging
 		    $pb->advance(0.3,'Loading Jemena CSV data into database...');
-    		$staging_script = shell_exec(realpath('../heatmap').'/load/origin-csv.sh '.$staged_file_path);
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/jemena.sh '.$staged_file_path);
 
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
-			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_jemena where id=(select min(a.id) from staging_jemena a);");
 
     		break;
 
