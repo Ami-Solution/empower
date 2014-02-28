@@ -7,6 +7,14 @@ require_once("inc/json.pdo.inc.php");
 
 # For communication of updates to the calling script
 require_once 'AJAX_PROGRESS.class.php';
+
+function logmsg($msg) 
+{ 
+    $date = date('d.m.Y h:i:s'); 
+    $log = $date." | ".$msg."\n"; 
+    error_log($log, 3, '/var/log/php/error.log'); 
+} 
+
 $pb = new AJAX_PROGRESS();
 
 // Opening up a connection to the database
@@ -45,6 +53,7 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 		  '{$v_date_start}'	=> $date_start
 		);
 		$sql = strtr($query_in_a_string, $vars);
+		logmsg($sql);
 
 		// Preparing and executing the query
 	    $recordSet = $pgconn->prepare($sql);
@@ -55,7 +64,7 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 // This script orchestrate the processing of a smart meter data file
 try {
 	$p_url = $_REQUEST['url'];
-
+	logmsg("Processing file:".$p_url);
     // 1) file detection
     //  a. Type (PDF/txt)
 
