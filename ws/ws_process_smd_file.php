@@ -32,6 +32,31 @@ function singleValueDBQuery ($sql) {
     return $first_val;
 }
 
+// Convenience function for mail
+function mySendMail ($sub,$bod,$att){
+
+	# Mailer library
+	require_once('../../../phpmailer/PHPMailerAutoload.php');
+	$mail = new PHPMailer;
+
+	// Other email parameters
+	$mail->From = 'php@empowerme.org.au';
+	$mail->FromName = 'empower.me';
+	$mail->addAddress('admin@empowerme.org.au');
+	$mail->isHTML(true);                                  // Set email format to HTML
+
+	$mail->Subject = $sub;
+	$mail->Body    = $bod;
+	$mail->addAttachment($att);	
+
+	if(!$mail->send()) {
+	   echo 'Message could not be sent.';
+	   echo 'Mailer Error: ' . $mail->ErrorInfo;
+	   exit;
+	}
+}
+
+
 function executeParamLoadQuery ($method,$client_id,$date_start) {
 	global $pb,$pgconn;
     if ($date_start && $client_id)
@@ -121,6 +146,7 @@ try {
 	        break;
 	    default:
 	        $message = "Un-recognised MIME type!";
+	        mySendMail('File upload unsucessful',$message,$staged_file_path);
 	        break;
     }
 
@@ -180,8 +206,8 @@ try {
     	case "LUMO":
     		break;
     	default:
-    		$message = "Unknown loading method";
-    }
+    		break;
+	}
 
     //  b. From staging to overall consumption table
     executeParamLoadQuery($method,$client_id,$date_start);
@@ -210,15 +236,8 @@ try {
 
 }
 catch (Exception $e) {
-	trigger_error("Caught Exception: " . $e->getMessage(), E_USER_ERROR);
-
-	$to      = 'error@empowerme.org.au';
-	$subject = 'PHP processing error';
 	$message = $e->getMessage();
-	$headers = 'From: webmaster@empowerme.org.au' . "\r\n" .
-    		'Reply-To: webmaster@empowerme.org.au' . "\r\n" .
-    		'X-Mailer: PHP/' . phpversion();
-	mail($to, $subject, $message, $headers);
+    mySendMail('File upload unsucessful',$message,$staged_file_path);
 }
 
 ?>
