@@ -5,6 +5,9 @@ require_once("inc/database.inc.php");
 require_once("inc/security.inc.php");
 require_once("inc/json.pdo.inc.php");
 
+# Mail wrapper
+require_once('../../../phpmailer/PHPMailerAutoload.php');
+
 # For communication of updates to the calling script
 require_once 'AJAX_PROGRESS.class.php';
 
@@ -35,8 +38,9 @@ function singleValueDBQuery ($sql) {
 // Convenience function for mail
 function mySendMail ($sub,$bod,$att){
 
+	logmsg("Mail sent: ".$sub." (".$bod.") for file ".$att);
+
 	# Mailer library
-	require_once('../../../phpmailer/PHPMailerAutoload.php');
 	$mail = new PHPMailer;
 
 	// Other email parameters
@@ -141,6 +145,7 @@ try {
 					break;
 				default:
 					$message = "Un-recognised text file!";
+					mySendMail('File upload unsucessful',$message,$staged_file_path);
 					break;
 			}
 	        break;
