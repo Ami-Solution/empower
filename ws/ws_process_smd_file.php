@@ -113,6 +113,13 @@ try {
 	$staged_file_path = realpath('../staging').'/'.basename($p_url);
 	file_put_contents($staged_file_path , $file_in_a_string);
 
+	// Extension for XLSX spreadsheet
+	$ext = pathinfo($staged_file_path, PATHINFO_EXTENSION);
+	if (strtolower($ext) == 'xlsx')
+	{
+		$mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;';
+	}
+
 	// First part of mime-type is interesting, second part is character set
 	$mt_arr = explode(';',$mime_type);
 	$mt = $mt_arr[0];
@@ -152,12 +159,12 @@ try {
 					break;
 				default:
 					$message = "Un-recognised text file!";
-					mySendMail('File upload unsucessful',$message,$staged_file_path);
+					mySendMail('File upload unsucessful with first line:'.$first_line,$message,$staged_file_path);
 					break;
 			}
 	        break;
 	    default:
-	        $message = "Un-recognised MIME type!";
+	        $message = "Un-recognised MIME type: ".$mt;
 	        mySendMail('File upload unsucessful',$message,$staged_file_path);
 	        break;
     }
