@@ -6,10 +6,12 @@ require_once("inc/security.inc.php");
 require_once("inc/json.pdo.inc.php");
 
 # Mail wrapper
-require_once('../../../phpmailer/PHPMailerAutoload.php');
+#require_once('../../../phpmailer/PHPMailerAutoload.php');
 
 # For communication of updates to the calling script
 require_once 'AJAX_PROGRESS.class.php';
+
+date_default_timezone_set('Australia/Melbourne');
 
 function logmsg($msg) 
 { 
@@ -71,7 +73,8 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"ORIGIN1" 	=> "origin1",
 	    	"ORIGIN2" 	=> "origin2",
 	    	"JEMENA"	=> "jemena",
-	    	"AGL"		=> "agl"
+	    	"AGL"		=> "agl",
+	    	"NOTSURE"	=> "notsure"
 	    );
 
 	    // Getting the parameterised query
@@ -118,9 +121,12 @@ try {
 
     //  b. Format (heuristics to recognise distributor / retailer)
     switch($mt) {
-	   case "application/pdf":
+	    case "application/pdf":
 	        $method = "ORIGIN1";
 	        break;
+	    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+	    	$method = "NOTSURE";
+	    	break;
 	    case "text/plain":
 	    	// Further investigation needed as there are many providers of plan text files
 	        // Sniffing the first line of the file
@@ -208,6 +214,18 @@ try {
 			$date_start = singleValueDBQuery("select substring(startdate,1,position(' ' in startdate)-1) as startdate from staging_agl1 where id=(select min(a.id) from staging_agl1 a)");
 
     		break;
+    	case "NOTSURE":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading XLSX data into database...');
+		    $cmd = realpath('../heatmap').'/load/notsure.sh '.$staged_file_path.' '.realpath('../staging');
+    		$staging_script = shell_exec($cmd);
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(day,'MM/DD/YY'),'DD/MM/YYYY') as startdate from staging_notsure where id=(select min(a.id) from staging_notsure a)");
+
+    		break;
+
     	case "LUMO":
     		break;
     	default:
