@@ -75,7 +75,8 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"ORIGIN2" 	=> "origin2",
 	    	"JEMENA"	=> "jemena",
 	    	"AGL"		=> "agl",
-	    	"NOTSURE"	=> "notsure"
+	    	"NOTSURE"	=> "notsure",
+	    	"CLICK"		=> "click"
 	    );
 
 	    // Getting the parameterised query
@@ -146,6 +147,8 @@ try {
 
 			$line1_agl = '"AccountNumber","NMI","DeviceNumber","DeviceType","RegisterCode","RateTypeDescription","StartDate","EndDate","ProfileReadValue","RegisterReadValue","QualityFlag",';
 
+			$line1_click = '200,6102514557,E1,E1,E1,N1,A8125048,KWH,30,20140331,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,';
+
 			switch($first_line)
 			{
 				case $line1_origin2:
@@ -156,6 +159,9 @@ try {
 					break;
 				case $line1_agl:
 					$method = "AGL";
+					break;
+				case $line1_click:
+					$method = "CLICK";
 					break;
 				default:
 					$message = "Un-recognised text file!";
@@ -231,6 +237,17 @@ try {
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
 			$date_start = singleValueDBQuery("select to_char(to_date(day,'MM/DD/YY'),'DD/MM/YYYY') as startdate from staging_notsure where id=(select min(a.id) from staging_notsure a)");
+
+    		break;
+
+    	case "CLICK":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading CLICK CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/click.sh '.$staged_file_path.' '.realpath('../staging'));
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'YYYYMMDD'),'DD/MM/YYYY') as startdate from staging_click where id=(select min(a.id) from staging_click a);");
 
     		break;
 
