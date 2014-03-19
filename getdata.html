@@ -59,13 +59,36 @@
     <div class="jumbotron">
       <div class="container">
         <h1>Get your smart meter data</h1>
-        <p>It's your legal right to access electricity information collected by your utility. Get it now to start fighting back!</p>
+        <p>In Victoria, it's your legal right to access electricity information collected by your utility (section 27.2 of the <a href="http://www.esc.vic.gov.au/getattachment/06661f37-494a-4f8c-8604-7fdf33a27dd2/Energy-Retail-Code-Version-10.pdf" target="_blank">Victorian Energy Retail Code</a>), free of charge and within 10 working days of receiving the request.</p>
+        <p>Get it now to start fighting back!</p>
         <p class="pull-right"><a class="btn btn-primary btn-lg" role="button">Start</a></p>
       </div>
     </div>
 
     <div class="container">
-      <h1 style="text-align:center;">Check who has your data</h1>
+      <h1 style="text-align:center;">
+        <div style="margin-bottom:10px;">
+          <span class="label label-primary">
+            Step 1
+          </span>
+        </div>
+        Get your latest bill</h1>
+    </div>
+
+    <div class="container">
+      <h1 style="text-align:center;">
+        <div style="margin-bottom:10px;">
+          <span class="label label-primary">
+           Step 2
+         </span>
+        </div>
+        Locate your NMI</h1>
+        <div class="text-center" style="margin-bottom:10px;">
+          The NMI (National Meter ID) is a 11-digit number. It identifies your smart meter.
+          <br>
+          If you need help locating the NMI on your bill, head to <a href="http://www.energytotem.net/find-nmi-meter-serial-number-bill/" target="_blank">EnergyTotem</a> or <a href="http://www.energetics.com.au/services/betterenergymanager/nmis" target="_blank">Energetics</a>. They've got it all covered.
+          <br>
+        </div>
       <div class="text-center">
         <form id="formNMI" class="form-inline" role="form">
           <div id="nmiGroup" class="form-group">
@@ -75,6 +98,43 @@
       </div>
       <br>
       <div id="yourUtility" class="text-center">
+      </div>
+    </div>
+
+    <div class="container" id="retailerContainer" style="display:none;">
+      <h1 style="text-align:center;">
+      <div style="margin-bottom:10px;">
+        <span class="label label-primary">
+          Step 3
+        </span>
+      </div>
+      Select your retailer</h1>
+      <div class="text-center">
+        <form id="formRetailer" class="form-inline" role="form">
+          <div style="margin:0 auto;float:none; width:250px;font-size:20px;">
+            <div class="radio text-left" style="display:block;">
+              <label>
+                <input type="radio" name="optionsRetailer" id="optionsRadios1" value="AGL">
+                <div style="width:30px;display:inline-block;" class="text-center"><img src="images/AGL.jpg" height="25"></div> AGL
+              </label>
+            </div>
+            <div class="radio text-left" style="display:block;">
+              <label>
+                <input type="radio" name="optionsRetailer" id="optionsRadios2" value="EA">
+                <div style="width:30px;display:inline-block;" class="text-center"><img src="images/EnergyAustralia.jpg" height="25"></div> Energy Australia
+              </label>
+            </div>
+            <div class="radio text-left" style="display:block;">
+              <label>
+                <input type="radio" name="optionsRetailer" id="optionsRadios3" value="OE">
+                <div style="width:30px;display:inline-block;" class="text-center"><img src="images/OriginEnergy.png" height="25"></div> Origin Energy
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <br>
+      <div id="contactURL" class="text-center">
       </div>
     </div>
 
@@ -163,6 +223,25 @@
 
       // Monitoring the NMI input field
       $(document).ready(function() {
+
+          $.fn.scrollTo = function( target, options, callback ){
+            if(typeof options == 'function' && arguments.length == 2){ callback = options; options = target; }
+            var settings = $.extend({
+              scrollTarget  : target,
+              offsetTop     : 50,
+              duration      : 500,
+              easing        : 'swing'
+            }, options);
+            return this.each(function(){
+              var scrollPane = $(this);
+              var scrollTarget = (typeof settings.scrollTarget == "number") ? settings.scrollTarget : $(settings.scrollTarget);
+              var scrollY = (typeof scrollTarget == "number") ? scrollTarget : scrollTarget.offset().top + scrollPane.scrollTop() - parseInt(settings.offsetTop);
+              scrollPane.animate({scrollTop : scrollY }, parseInt(settings.duration), settings.easing, function(){
+                if (typeof callback == 'function') { callback.call(this); }
+              });
+            });
+          }
+
           // Retrieving JSON file of NMI allocation
           $.getJSON("data/json/nmi_allocation.json",
             function(data){
@@ -172,6 +251,38 @@
               }
             }
           );
+
+          $()
+
+          // Retailer links
+          $('input[name="optionsRetailer"]').on('click',function(){
+            var shortRetailerName = this.value;
+            var retURL, retLink;
+
+            // Correspondance between retailer name and URL to visit
+            switch (shortRetailerName)
+            {
+              case "AGL":
+                retLink = "AGL Energy Online (portal signup)";
+                retURL = "https://www.agl.com.au/aeo/home/register";
+                break;
+              case "EA":
+                retLink = "Energy Australia eWise (portal signup)";
+                retURL = "https://energyaustralia.opower.com/ei/app/account/create";
+                break;
+              case "OE":
+                retLink = "Origin Energy data request form";
+                retURL = "https://www.originenergy.com.au/3244/Interval-meter-data-request";
+                break;
+              default:
+                alert("Unknown retailer");
+            }
+
+            // Placing the URL to go to in its container
+            $('#contactURL').html('Go to: <a href="'+retURL+'" target="_blank">'+retLink+'</a>');
+            $('body').scrollTo('#contactURL');
+                        
+          });
 
           // In all cases, we disable the form submission
           $('form').on('submit',function(event){  
@@ -196,6 +307,7 @@
                           callback:{
                             callback: function(fieldValue, validator){
                               // Clearing error message and message
+                              $('#retailerContainer').css("display","none");
                               $('#nmiGroup .help-block').html("").css("display","none");
                               $('#nmiGroup').removeClass("has-success").removeClass("has-error");
                               $('#yourUtility').html("").css("color","black");
@@ -262,34 +374,55 @@
                                   //
                                   $('#nmiGroup').addClass("has-success");
                                   $('#yourUtility').html("Keep typing for more details");
-                                } else if (result.length == 1 || fieldValue.length==11)
+                                } 
+                                else if (result.length == 1 || fieldValue.length==11)
                                 {
                                   //
                                   $('#nmiGroup').addClass("has-success");
-                                  $('#yourUtility').html("You can contact <b>"+result[0]+"</b>");                                  
+
+                                  //
+                                  switch(result[0])
+                                  {
+                                    case "SP-Ausnet DNSP":
+                                      $('#yourUtility').html("Go to <b>SP Ausnet</b>'s portal: <a href='https://myhomeenergy.com.au/' target='_blank'>MyHomeEnergy</a>");
+                                      $('body').scrollTo('#yourUtility');
+                                      break;
+                                    case "Jemena Electricity Networks (Vic) Ltd":
+                                      $('#yourUtility').html("Go to <b>Jemena</b>'s portal: <a href='https://electricityoutlook.jemena.com.au/' target='_blank'>Electricity Outlook</a>");
+                                      $('body').scrollTo('#yourUtility');
+                                      break;
+                                    case "United Energy Distribution Pty Ltd":
+                                      $('#yourUtility').html("Go to <b>United Energy</b>'s portal: <a href='https://energyeasy.ue.com.au/' target='_blank'>Energy Easy</a>");
+                                      $('body').scrollTo('#yourUtility');
+                                      break;
+                                    case "Powercor Australia":
+                                      $('#yourUtility').html("Your distributor (<b>Powercor</b>) has delegated smart meter data requests to your retailer. Please proceed to step 3.");
+                                    case "CitiPower Pty":
+                                      $('#yourUtility').html("Your distributor (<b>CitiPower</b>) has delegated smart meter data requests to your retailer. Please proceed to step 3.");
+                                    default:
+                                      // Display the 3rd step
+                                      $('#retailerContainer').css("display","block");
+                                      $('body').scrollTo('#retailerContainer');
+                                  }
 
                                   if (fieldValue.length == 11)
                                   {
                                     // NMI checksum
-                                    if (isValidNMI(fieldValue))
-                                    {
-                                      $('#yourUtility').html($('#yourUtility').html()+" with this NMI (you typed it right)!");
-                                    }
-                                    else
+                                    if (!isValidNMI(fieldValue))
                                     {
                                       $('#nmiGroup').removeClass("has-success").addClass("has-error");
-                                      $('#yourUtility').html($('#yourUtility').html()+" but check the NMI you typed above (it's not valid)").css("color","red");                                  
+                                      $('#yourUtility').html("The NMI you typed above is not valid. Did you type it correctly?").css("color","red");                                  
                                     }
                                   }
                                   else
                                   {
-                                    $('#yourUtility').html($('#yourUtility').html()+". Keep typing to check your NMI is valid.");
+                                    //$('#yourUtility').html($('#yourUtility').html()+". Keep typing to check your NMI is valid.");
                                   }
                                 } else if (result.length == 0)
                                 {
                                   //
                                   $('#nmiGroup').addClass("has-error");
-                                  $('#yourUtility').html("Hummm.. None is in charge of this NMI. Did you type it correctly?").css("color","red");                                  
+                                  $('#yourUtility').html("Hummm.. None is in charge of this NMI. Did you type it correctly?").css("color","red");
                                 }
                               }
                               else 
