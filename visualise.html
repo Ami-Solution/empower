@@ -184,6 +184,7 @@
                     $('#myheatmap').empty()
                                 .css('padding',0).css('width','100%')
                                 .append(heatmap_iframe);
+                    $('body').scrollTo('#myheatmap');
                 }
             }
             else
@@ -207,6 +208,25 @@
 
     $(function () {
         'use strict';
+
+        $.fn.scrollTo = function( target, options, callback ){
+            if(typeof options == 'function' && arguments.length == 2){ callback = options; options = target; }
+            var settings = $.extend({
+              scrollTarget  : target,
+              offsetTop     : 50,
+              duration      : 500,
+              easing        : 'swing'
+            }, options);
+            return this.each(function(){
+              var scrollPane = $(this);
+              var scrollTarget = (typeof settings.scrollTarget == "number") ? settings.scrollTarget : $(settings.scrollTarget);
+              var scrollY = (typeof scrollTarget == "number") ? scrollTarget : scrollTarget.offset().top + scrollPane.scrollTop() - parseInt(settings.offsetTop);
+              scrollPane.animate({scrollTop : scrollY }, parseInt(settings.duration), settings.easing, function(){
+                if (typeof callback == 'function') { callback.call(this); }
+              });
+            });
+        }
+
         // Change this to the location of your server-side upload handler:
         var url = 'jQuery-File-Upload-9.5.3/server/php/';
         $('#fileupload').fileupload({
