@@ -4,8 +4,7 @@
     <title>Empower.me</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
-    <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" hrf="jqplot/jquery.jqplot.min.css" />
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -15,7 +14,7 @@
     <![endif]-->
     <style>
       .well {
-        margin-top:10px;
+        margin:10px;
       }
 
       .dropdown-menu {
@@ -52,6 +51,43 @@
     </style>
   </head>
   <body>
+    <nav class="navbar navbar-inverse" role="navigation">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">Empower.me!</a>
+      </div>
+
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          <li><a href="getdata.html">Get data</a></li>
+          <li><a href="visualise.html">Visualise</a></li>
+          <li class="dropdown active">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Market <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li class="active"><a href="market.html">Today</a></li>
+              <li><a href="outlook.html">Outlook</a></li>
+              <li><a href="history.html">History</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Contact <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="#">Services</a></li>
+              <li><a href="#">About us</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div><!-- /.navbar-collapse -->
+    </nav>
 
     <div class="container">
       <div class="text-center well">
@@ -78,7 +114,7 @@
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="../bootstrap/js/bootstrap.min.js"></script> 
+    <script src="bootstrap/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
     <script type="text/javascript" src="jqplot/plugins/jqplot.dateAxisRenderer.min.js"></script>
     <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
@@ -160,6 +196,15 @@
             return yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]) + ' ' + (hh[1]?hh:"0"+hh[0]) + ':' + (mi[1]?mi:"0"+mi[0]) + ':00';
        };  
 
+      Date.prototype.getDateString = function() {
+                                    
+            var yyyy = this.getFullYear().toString();
+            var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+            var dd  = this.getDate().toString();
+
+            return yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]);
+       }; 
+
       // Helper class for number formatting
       function numberWithCommas(x) {
           return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -169,21 +214,24 @@
         // Sure if that's needed
         $.jqplot.config.enablePlugins = true;
 
-        $.getJSON("../data/api-json/now.json",
+        $.getJSON("data/api-json/now.json",
           function(data)
           {
             if (data.output)
             {
               // Re-formatting the line data to fit the model:
-              // so that:
               // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
+              var td = new Date().getDateString();
+              var qtyFillerBefore4am = [[td+' 0:00:00',0],[td+' 0:30:00',0],[td+' 1:00:00',0],[td+' 1:30:00',0],[td+' 2:00:00',0],[td+' 2:30:00',0],[td+' 3:00:00',0],[td+' 3:30:00',0]];
+
               solarData={
-                "VIC":[],
-                "NSW":[],
-                "SA":[],
-                "QLD":[],
-                "TAS":[]
-              }
+                "VIC":qtyFillerBefore4am.slice(0),
+                "NSW":qtyFillerBefore4am.slice(0),
+                "SA": qtyFillerBefore4am.slice(0),
+                "QLD":qtyFillerBefore4am.slice(0),
+                "TAS":qtyFillerBefore4am.slice(0)
+              };
+
               for (var k=0;k<data.output.length;k++)
               {
                 var dt = new Date(Date.parse(data.output[k].ts));
@@ -212,6 +260,8 @@
                 solarData["TAS"].push([dt_fmt,qty_tas]);
               }
             }
+            //
+            var hhh = 0;
 
           }
         );
@@ -236,7 +286,7 @@
 
         function getForecast() {
           // Retrieving the forecast data values
-          $.getJSON("../data/aemo-json/data/dmd-price-30mn.json",{
+          $.getJSON("data/aemo-json/data/dmd-price-30mn.json",{
               // cache buster
               _dc: (new Date()).getTime()
             },

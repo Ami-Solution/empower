@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Empower.me</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" hrf="jqplot/jquery.jqplot.min.css" />
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+    <style>
+      .well {
+        margin-top:10px;
+      }
+
+      .dropdown-menu {
+        font-size:18px;
+      }
+
+      .jqplot-yaxis {
+        position: absolute;
+        left: -10px;
+      }
+
+      .jqplot-xaxis-tick {
+        font-size:10px;
+        font-weight:bold;
+        color:#AAAAAA;
+      }
+
+      .jqplot-yaxis-tick {
+        font-size:12px;
+        font-weight:bold;
+        color:#AAAAAA;
+        text-align:center;
+        line-height: 1;
+      }
+
+      .jqplot-title {
+        font-size:18px;
+      }
+
+      .jqplot-highlighter-tooltip{
+        background-color: #EEEEEE
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="text-center well">
+        <!-- Split button for state filtering -->
+        <div class="btn-group text-left">
+          <button id="stateFilterBtn" type="button" class="btn btn-lg btn-default dropdown-toggle" data-toggle="dropdown">
+            Pick a state <span class="caret"></span>
+          </button>
+          <ul id="stateFilter" class="dropdown-menu" role="menu">
+            <li><a href="#" data-state="NSW">New South Wales</a></li>
+            <li><a href="#" data-state="QLD">Queensland</a></li>
+            <li><a href="#" data-state="SA">South Australia</a></li>
+            <li><a href="#" data-state="TAS">Tasmania</a></li>
+            <li><a href="#" data-state="VIC">Victoria</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- A container for a 7-day list/grid/table -->
+    <div id="my2dayrolling" class="container">
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="../bootstrap/js/bootstrap.min.js"></script> 
+    <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.dateAxisRenderer.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasOverlay.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
+
+    <!-- Getting current client IP -->
+    <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
+    <script>
+      // Global
+      var myCurrentState, solarData;
+      var gtodayOnly = true;
+      var stateAbbrev = {
+        "Victoria" :          "VIC",
+        "New South Wales" :   "NSW",
+        "Queensland" :        "QLD",
+        "Tasmania" :          "TAS",
+        "South Australia" :   "SA"
+      };
+
+      // Helper class for correct date display
+      function getDayName(dt)
+      {
+        var d = new Date(dt);
+        var weekday=new Array(7);
+        weekday[0]="Sunday";
+        weekday[1]="Monday";
+        weekday[2]="Tuesday";
+        weekday[3]="Wednesday";
+        weekday[4]="Thursday";
+        weekday[5]="Friday";
+        weekday[6]="Saturday";
+
+        var month=new Array();
+        month[0]="January";
+        month[1]="February";
+        month[2]="March";
+        month[3]="April";
+        month[4]="May";
+        month[5]="June";
+        month[6]="July";
+        month[7]="August";
+        month[8]="September";
+        month[9]="October";
+        month[10]="November";
+        month[11]="December";
+
+        var daysuffix=new Array();
+        for (var k=1;k<=31;k++)
+        {
+          daysuffix[k] = "th";
+          if (k % 10 == 1)
+          {
+            daysuffix[k] = "st";
+          }
+          if (k % 10 == 2)
+          {
+            daysuffix[k] = "nd";
+          }          
+          if (k % 10 == 3)
+          {
+            daysuffix[k] = "rd";
+          }
+        }
+
+        return weekday[d.getDay()]+" "+d.getDate()+daysuffix[d.getDate()];
+      }
+
+      Date.prototype.jqPlotDateAxisFormat = function() {
+                                    
+            var yyyy = this.getFullYear().toString();
+            var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+            var dd  = this.getDate().toString();
+            var hh = this.getHours().toString();                                    
+            var mi = this.getMinutes().toString();
+
+            return yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]) + ' ' + (hh[1]?hh:"0"+hh[0]) + ':' + (mi[1]?mi:"0"+mi[0]) + ':00';
+       };  
+
+      Date.prototype.getDateString = function() {
+                                    
+            var yyyy = this.getFullYear().toString();
+            var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+            var dd  = this.getDate().toString();
+
+            return yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]);
+       }; 
+
+      // Helper class for number formatting
+      function numberWithCommas(x) {
+          return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
+
+      $(window).load(function(){
+        // Sure if that's needed
+        $.jqplot.config.enablePlugins = true;
+
+        $.getJSON("../data/api-json/now.json",
+          function(data)
+          {
+            if (data.output)
+            {
+              // Re-formatting the line data to fit the model:
+              // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
+              var td = new Date().getDateString();
+              var qtyFillerBefore4am = [[td+' 0:00:00',0],[td+' 0:30:00',0],[td+' 1:00:00',0],[td+' 1:30:00',0],[td+' 2:00:00',0],[td+' 2:30:00',0],[td+' 3:00:00',0],[td+' 3:30:00',0]];
+
+              solarData={
+                "VIC":qtyFillerBefore4am.slice(0),
+                "NSW":qtyFillerBefore4am.slice(0),
+                "SA": qtyFillerBefore4am.slice(0),
+                "QLD":qtyFillerBefore4am.slice(0),
+                "TAS":qtyFillerBefore4am.slice(0)
+              };
+
+              for (var k=0;k<data.output.length;k++)
+              {
+                var dt = new Date(Date.parse(data.output[k].ts));
+                var dt_fmt;
+
+                // Adjustment to 30mn interval (assumption: starting at 0)
+                var intervalInMn = 30;
+                if (dt.getMinutes() % intervalInMn == 0)
+                {
+                  qty_vic = data.output[k].vic;
+                  qty_nsw = data.output[k].nsw;
+                  qty_sa = data.output[k].sa;
+                  qty_qld = data.output[k].qld;
+                  qty_tas = data.output[k].tas;
+                  dt_fmt = dt.jqPlotDateAxisFormat();
+                }
+                else
+                {
+                  continue;
+                }
+
+                solarData["VIC"].push([dt_fmt,qty_vic]);
+                solarData["NSW"].push([dt_fmt,qty_nsw]);
+                solarData["SA"].push([dt_fmt,qty_sa]);
+                solarData["QLD"].push([dt_fmt,qty_qld]);
+                solarData["TAS"].push([dt_fmt,qty_tas]);
+              }
+            }
+            //
+            var hhh = 0;
+
+          }
+        );
+
+
+        $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?",
+          function(data)
+          {
+            if (data.region_name)
+            {
+              // Select the corresponding state in the drop down
+              //alert("You are in "+data.region_name);
+              myCurrentState = stateAbbrev[data.region_name];
+            }
+
+            // Get the forecast data after having identified the state
+            // But sometimes the state is not detected => get the forecast anyway
+            getForecast();
+
+          }
+        );
+
+        function getForecast() {
+          // Retrieving the forecast data values
+          $.getJSON("../data/aemo-json/data/dmd-price-30mn.json",{
+              // cache buster
+              _dc: (new Date()).getTime()
+            },
+            function(data){
+              if (data)
+              {
+                // Make a button out of the state
+                $('.btn-group').button();
+
+                $('#stateFilter a').on("click", function() { 
+                  // Retrieving state
+                  var state = $(this).attr('data-state');
+                  // Managing active status by adding class
+                  $('#stateFilter a').removeClass("active");
+                  $(this).addClass("active");
+                  // Changing label of state filter button
+                  $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
+
+                  renderData(data,state,gtodayOnly);
+                });
+
+                // If the state is known at this stage, go there!
+                if (myCurrentState)
+                {
+                  $("#stateFilter a[data-state='"+myCurrentState+"']").click();
+                }
+              }
+            }
+          );
+        }
+
+        function renderData(json,state,todayOnly){
+          var data_day = json[state];
+          var data_time, data_qty;
+          var day_ct = 0;
+          var line1=[], line2 = solarData[state];
+          var today, today_str, tomorrow, tomorrow_str;
+
+          if (todayOnly)
+          {
+            today = new $.jsDate();
+            today_str = today.strftime('%Y/%m/%d');
+            tomorrow = today.add(1,'day');
+            tomorrow_str = tomorrow.strftime('%Y/%m/%d');
+          }
+
+          // Emptying the list
+          $('#my2dayrolling').empty();
+
+          for (var day in data_day) {
+            if (data_day.hasOwnProperty(day)) {
+              // Day counter starts at 1
+              if (!todayOnly || (todayOnly && (day == today_str)) || (todayOnly && (day == tomorrow_str)))
+              {
+                // For this date, we know loop on the time of the day
+                data_time = data_day[day];
+
+                for (var time in data_time) {
+                  if (data_time.hasOwnProperty(time)) {
+                    // For this time, we have a number of quantities
+                    data_qty = data_time[time];
+                    pt_data = new Array(day+" "+time,parseFloat(data_qty.demand));
+                    line1.push(pt_data);
+                    // Breaking out of the loop if todayOnly and day is tomorrow
+                    if (todayOnly && (day == tomorrow_str))
+                    {
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          //var line1=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
+
+          // Rendering the gauge
+          $('#my2dayrolling').css({"width":"700px","height":"380px"});
+
+          var plot2 = $.jqplot('my2dayrolling', [line1,line2], {
+            title:'Today\'s Demand Profile',
+            stackSeries: true,
+            seriesDefaults: {
+              fill: true,
+            },
+            canvasOverlay: {
+              show: true,
+              objects: [
+                {
+                  dashedVerticalLine: {
+                    name: 'barney',
+                    x: new $.jsDate().getTime(),
+                    lineWidth: 1,
+                    color: '#FF0040',
+                    shadow: false,
+                    yminOffset:"0px",
+                    ymaxOffset:"0px",
+                    dashPattern: [6,6]
+                  }
+                },
+                {
+                  line:
+                  {
+                    start : [new Date(line1[0][0]).getTime(),0],                                                
+                    stop : [new $.jsDate().getTime(),0],                                                
+                    lineWidth: 380*2,
+                    color: 'rgba(200, 200, 200,0.25)',
+                    shadow: false,
+                    lineCap : 'butt'
+                  }
+                }                
+              ]
+            },
+            axes:{
+              xaxis:{
+                renderer:$.jqplot.DateAxisRenderer, 
+                tickOptions:{
+                  formatString:'%#H:%M',
+                  angle:-45
+                },
+                tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+                // Starting at the first element (it is needed)
+                min: line1[0][0],
+                // Finishing at the last element (it is needed)
+                max: line1[line1.length-1][0],
+                tickInterval:'2 hours'
+              },
+              yaxis:{
+                tickOptions:{
+                  formatString:'%.0f',
+                  labelPosition: 'middle'
+                },
+                tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+                min:0,
+                label: 'Demand (MW)',
+                labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                showMinorTicks: true
+              }
+            },
+            highlighter: {
+              show: true,
+              sizeAdjust: 7.5,
+              formatString:'<table class="jqplot-highlighter"> \
+                              <tr><td>At </td><td>%s</td><td>:</td><td>%s MW</td></tr> \
+                            </table>'
+            },            
+            series:[{
+              lineWidth:6, 
+              rendererOptions:{smooth: true}, 
+              showMarker:false,
+            }]
+          });
+
+          // Adjusting the distance between axis and tick labels
+          $('.jqplot-axis.jqplot-yaxis').css("left","10px");
+          $('.jqplot-yaxis-label').css("left","-25px");
+          $('.jqplot-axis.jqplot-xaxis').css("bottom","-5px");
+
+        }
+      });
+    </script>
+  </body>
+</html>
