@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DATE=`date +%Y-%m-%d`
+/usr/bin/wget http://pv-map.apvi.org.au/data/$DATE -O /usr/share/apache2/empower.me/data/api-json/now.json > /usr/share/apache2/empower.me/data/api-json/log.txt
