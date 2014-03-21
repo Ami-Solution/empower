@@ -233,10 +233,6 @@
           $.getJSON("data/aemo-json/data/all-dispatch.json",{
               // cache buster
               _dc: (new Date()).getTime()
-            },
-            function(data){
-              // Re-jigging of the data into an array of lines ingestible by the chart
-              var toto;
             }
           )
         ).done(function(a1,a2,a3,a4){
@@ -285,6 +281,66 @@
             }
           }
 
+          // Dispatch data
+          if (a4[0])
+          {
+            // Re-jigging of the data into an array of lines ingestible by the chart
+            // Aggregation by fuel type inside a state
+            dispatch_data = {
+              "VIC":{},
+              "NSW":{},
+              "SA": {},
+              "QLD":{},
+              "TAS":{}
+            };
+
+            var p_fuel, p_state;
+            var td = new Date().getDateString();
+            for (var participant in a4[0])
+            {
+              // We're only interested in adding quantities
+              // so we skip participants whose qty is not defined
+              if (a4[0][participant].qty)
+              {
+                p_state = a4[0][participant].region;
+                p_fuel = a4[0][participant].fuel;
+                if (!p_fuel.length)
+                {
+                  console.log(participant+" ("+a4[0][participant].participant+") has no fuel type!");
+                }
+                else
+                {
+
+                  if (dispatch_data[p_state][p_fuel])
+                  {
+                    //console.log(a4[0][participant].participant);
+                    // Add all quantities, hour by hour
+                    for (var g=0; g<a4[0][participant].qty.length; g++)
+                    {
+                      // It seems that in some cases, the elements are undefined
+                      // so we test for their existence first
+                      if (a4[0][participant].qty[g] && a4[0][participant].qty[g].length>0 && dispatch_data[p_state][p_fuel][g] && dispatch_data[p_state][p_fuel][g].length>0)
+                      {
+                        dispatch_data[p_state][p_fuel][g][1] = Math.max(dispatch_data[p_state][p_fuel][g][1] + a4[0][participant].qty[g][1],0);
+                      }
+                    }
+                  }
+                  else
+                  {
+                    dispatch_data[p_state][p_fuel] = [];
+                    // Initial array of quantities for this state/fuel combination
+                    for (var r=0; r < a4[0][participant].qty.length; r++)
+                    {
+                      dispatch_data[p_state][p_fuel].push([td+" "+a4[0][participant].qty[r][0]+":00",Math.max(a4[0][participant].qty[r][1],0)]);
+                    }
+                    
+                  }
+
+                }
+              }
+            }
+          }
+
           // Make a button out of the state
           $('.btn-group').button();
 
@@ -328,6 +384,7 @@
           // Emptying the list
           $('#my2dayrolling').empty();
 
+          // Using forecast data for the future
           for (var day in data_day) {
             if (data_day.hasOwnProperty(day)) {
               // Day counter starts at 1
@@ -353,12 +410,66 @@
             }
           }
 
+          // Using all dispatch data for the past
+          var line_arr = [];
+
+          function compare(a,b) {
+            var presentationOrder = {
+              "Black Coal":1,
+              "Brown Coal":2,
+              "Coal Tailings":3,
+              "Coal Seam Methane":4,
+              "Waste Coal Mine Gas":5,
+              "Diesel":6,
+              "Kerosene":7,
+              "Natural Gas":8,
+              "Natural Gas / Diesel":9,
+              "Natural Gas / Fuel Oil":10,
+              "Water":11,
+              "Wind":12,
+              "Bagasse":13,
+              "Solar":14
+            };
+            if (presentationOrder[a] < presentationOrder[b])
+               return -1;
+            else
+              return 1;
+          };
+
+          var newArray = []
+          for (var fuel in dispatch_data[state]) {
+              newArray.push(fuel);
+          }
+          newArray.push("Solar");
+          newArray.sort(compare);
+
+          // 
+          for (var j=0; j < newArray.length; j++)
+          {
+            if (newArray[j] == "Solar")
+            {
+              line_arr.push(line2); // solar data
+            }
+            else
+            {
+              line_arr.push(dispatch_data[state][newArray[j]]);
+            }
+          }
+
+          var minLength = Math.min.apply(Math, $.map(line_arr, function (el) { return el.length }));
+
+          // Shortening the arrays to match the shortest
+          for (var line in line_arr)
+          {
+            line_arr[line] = line_arr[line].slice(0,minLength);
+          }
+
           //var line1=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
 
           // Rendering the gauge
           $('#my2dayrolling').css({"width":"700px","height":"380px"});
 
-          var plot2 = $.jqplot('my2dayrolling', [line1,line2], {
+          var plot2 = $.jqplot('my2dayrolling', line_arr, {
             title:'Today\'s Demand Profile',
             stackSeries: true,
             seriesDefaults: {
