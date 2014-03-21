@@ -413,29 +413,31 @@
           // Using all dispatch data for the past
           var line_arr = [];
 
+          var fuelConfig = {
+            "Black Coal": {order: 1, color:"#1F1F14"},
+            "Brown Coal": {order: 2, color:"#AD5C33"},
+            "Coal Tailings":{order: 3, color:"grey"},
+            "Coal Seam Methane":{order: 4, color:"grey"},
+            "Waste Coal Mine Gas":{order: 5, color:"grey"},
+            "Diesel":{order: 6, color:"orange"},
+            "Kerosene":{order: 7, color:"orange"},
+            "Natural Gas":{order: 8, color:"#FF5C5C"},
+            "Natural Gas / Diesel":{order: 9, color:"#FF5C5C"},
+            "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C"},
+            "Water":{order: 11, color:"#8AB8E6"},
+            "Wind":{order: 12, color:"#47D147"},
+            "Bagasse":{order: 13, color:"#47D147"},
+            "Solar":{order: 14, color:"#FFFF47"}
+          };
+
           function compare(a,b) {
-            var presentationOrder = {
-              "Black Coal":1,
-              "Brown Coal":2,
-              "Coal Tailings":3,
-              "Coal Seam Methane":4,
-              "Waste Coal Mine Gas":5,
-              "Diesel":6,
-              "Kerosene":7,
-              "Natural Gas":8,
-              "Natural Gas / Diesel":9,
-              "Natural Gas / Fuel Oil":10,
-              "Water":11,
-              "Wind":12,
-              "Bagasse":13,
-              "Solar":14
-            };
-            if (presentationOrder[a] < presentationOrder[b])
+            if (fuelConfig[a].order < fuelConfig[b].order)
                return -1;
             else
               return 1;
           };
 
+          // Ordering the fuels in a separate, helper array
           var newArray = []
           for (var fuel in dispatch_data[state]) {
               newArray.push(fuel);
@@ -443,7 +445,7 @@
           newArray.push("Solar");
           newArray.sort(compare);
 
-          // 
+          // Ordering the objects based on the helper array
           for (var j=0; j < newArray.length; j++)
           {
             if (newArray[j] == "Solar")
@@ -456,12 +458,26 @@
             }
           }
 
+          // Shortening the arrays to match the shortest
           var minLength = Math.min.apply(Math, $.map(line_arr, function (el) { return el.length }));
 
-          // Shortening the arrays to match the shortest
           for (var line in line_arr)
           {
             line_arr[line] = line_arr[line].slice(0,minLength);
+          }
+
+          // Adding series-specific configuration
+          var series_arr = [];
+
+          for (var k=0; k < newArray.length; k++)
+          {
+            series_arr.push({ 
+              label:newArray[k],
+              lineWidth:6, 
+              rendererOptions:{smooth: true}, 
+              showMarker:false,
+              color:fuelConfig[newArray[k]].color
+            });
           }
 
           //var line1=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
@@ -536,18 +552,19 @@
                               <tr><td>At </td><td>%s</td><td>:</td><td>%s MW</td></tr> \
                             </table>'
             },            
-            series:[{
-              lineWidth:6, 
-              rendererOptions:{smooth: true}, 
-              showMarker:false,
-            }]
+            series: series_arr,
+            legend: {
+              show: true,
+              placement: 'outsideGrid'
+            }
           });
 
           // Adjusting the distance between axis and tick labels
           $('.jqplot-axis.jqplot-yaxis').css("left","10px");
           $('.jqplot-yaxis-label').css("left","-25px");
           $('.jqplot-axis.jqplot-xaxis').css("bottom","-5px");
-
+          $('table.jqplot-table-legend').css("position","absolute");
+          $('.jqplot-table-legend-swatch').css({"width":"15px","height":"15px"});
         }
       });
     </script>
