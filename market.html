@@ -214,109 +214,101 @@
         // Sure if that's needed
         $.jqplot.config.enablePlugins = true;
 
-        $.getJSON("data/api-json/now.json",
-          function(data)
-          {
-            if (data.output)
-            {
-              // Re-formatting the line data to fit the model:
-              // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
-              var td = new Date().getDateString();
-              var qtyFillerBefore4am = [[td+' 0:00:00',0],[td+' 0:30:00',0],[td+' 1:00:00',0],[td+' 1:30:00',0],[td+' 2:00:00',0],[td+' 2:30:00',0],[td+' 3:00:00',0],[td+' 3:30:00',0]];
-
-              solarData={
-                "VIC":qtyFillerBefore4am.slice(0),
-                "NSW":qtyFillerBefore4am.slice(0),
-                "SA": qtyFillerBefore4am.slice(0),
-                "QLD":qtyFillerBefore4am.slice(0),
-                "TAS":qtyFillerBefore4am.slice(0)
-              };
-
-              for (var k=0;k<data.output.length;k++)
-              {
-                var dt = new Date(Date.parse(data.output[k].ts));
-                var dt_fmt;
-
-                // Adjustment to 30mn interval (assumption: starting at 0)
-                var intervalInMn = 30;
-                if (dt.getMinutes() % intervalInMn == 0)
-                {
-                  qty_vic = data.output[k].vic;
-                  qty_nsw = data.output[k].nsw;
-                  qty_sa = data.output[k].sa;
-                  qty_qld = data.output[k].qld;
-                  qty_tas = data.output[k].tas;
-                  dt_fmt = dt.jqPlotDateAxisFormat();
-                }
-                else
-                {
-                  continue;
-                }
-
-                solarData["VIC"].push([dt_fmt,qty_vic]);
-                solarData["NSW"].push([dt_fmt,qty_nsw]);
-                solarData["SA"].push([dt_fmt,qty_sa]);
-                solarData["QLD"].push([dt_fmt,qty_qld]);
-                solarData["TAS"].push([dt_fmt,qty_tas]);
-              }
+        $.when(
+          // Promise 1 - APVI data
+          $.getJSON("data/api-json/now.json",{
+              // cache buster
+              _dc: (new Date()).getTime()
             }
-            //
-            var hhh = 0;
-
-          }
-        );
-
-
-        $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?",
-          function(data)
-          {
-            if (data.region_name)
-            {
-              // Select the corresponding state in the drop down
-              //alert("You are in "+data.region_name);
-              myCurrentState = stateAbbrev[data.region_name];
-            }
-
-            // Get the forecast data after having identified the state
-            // But sometimes the state is not detected => get the forecast anyway
-            getForecast();
-
-          }
-        );
-
-        function getForecast() {
-          // Retrieving the forecast data values
+          ),
+          // Promise 2 - GeoIP
+          $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?"),
+          // Promise 3 - demand/price current and forecast
           $.getJSON("data/aemo-json/data/dmd-price-30mn.json",{
+              // cache buster
+              _dc: (new Date()).getTime()
+            }
+          ),
+          // Promise 4 - get all of today's dispatch information
+          $.getJSON("data/aemo-json/data/all-dispatch.json",{
               // cache buster
               _dc: (new Date()).getTime()
             },
             function(data){
-              if (data)
-              {
-                // Make a button out of the state
-                $('.btn-group').button();
-
-                $('#stateFilter a').on("click", function() { 
-                  // Retrieving state
-                  var state = $(this).attr('data-state');
-                  // Managing active status by adding class
-                  $('#stateFilter a').removeClass("active");
-                  $(this).addClass("active");
-                  // Changing label of state filter button
-                  $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
-
-                  renderData(data,state,gtodayOnly);
-                });
-
-                // If the state is known at this stage, go there!
-                if (myCurrentState)
-                {
-                  $("#stateFilter a[data-state='"+myCurrentState+"']").click();
-                }
-              }
+              // Re-jigging of the data into an array of lines ingestible by the chart
+              var toto;
             }
-          );
-        }
+          )
+        ).done(function(a1,a2,a3,a4){
+          // Re-jigging the solar data into the solarData array
+          if (a1[0].output)
+          {
+            // Re-formatting the line data to fit the model:
+            // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
+            var td = new Date().getDateString();
+            var qtyFillerBefore4am = [[td+' 0:00:00',0],[td+' 0:30:00',0],[td+' 1:00:00',0],[td+' 1:30:00',0],[td+' 2:00:00',0],[td+' 2:30:00',0],[td+' 3:00:00',0],[td+' 3:30:00',0]];
+
+            solarData={
+              "VIC":qtyFillerBefore4am.slice(0),
+              "NSW":qtyFillerBefore4am.slice(0),
+              "SA": qtyFillerBefore4am.slice(0),
+              "QLD":qtyFillerBefore4am.slice(0),
+              "TAS":qtyFillerBefore4am.slice(0)
+            };
+
+            for (var k=0;k<a1[0].output.length;k++)
+            {
+              var dt = new Date(Date.parse(a1[0].output[k].ts));
+              var dt_fmt;
+
+              // Adjustment to 30mn interval (assumption: starting at 0)
+              var intervalInMn = 30;
+              if (dt.getMinutes() % intervalInMn == 0)
+              {
+                qty_vic = a1[0].output[k].vic;
+                qty_nsw = a1[0].output[k].nsw;
+                qty_sa = a1[0].output[k].sa;
+                qty_qld = a1[0].output[k].qld;
+                qty_tas = a1[0].output[k].tas;
+                dt_fmt = dt.jqPlotDateAxisFormat();
+              }
+              else
+              {
+                continue;
+              }
+
+              solarData["VIC"].push([dt_fmt,qty_vic]);
+              solarData["NSW"].push([dt_fmt,qty_nsw]);
+              solarData["SA"].push([dt_fmt,qty_sa]);
+              solarData["QLD"].push([dt_fmt,qty_qld]);
+              solarData["TAS"].push([dt_fmt,qty_tas]);
+            }
+          }
+
+          // Make a button out of the state
+          $('.btn-group').button();
+
+          // Click handler for a state in the drop down
+          $('#stateFilter a').on("click", function() { 
+            // Retrieving state
+            var state = $(this).attr('data-state');
+            // Managing active status by adding class
+            $('#stateFilter a').removeClass("active");
+            $(this).addClass("active");
+            // Changing label of state filter button
+            $('#stateFilterBtn').html($(this).html()+' <span class="caret"></span>');
+
+            renderData(a3[0],state,true);
+          });
+
+          // Any useable info from the geoip service?
+          if (a2[0].region_name)
+          {
+            // Select the corresponding state in the drop down
+            $("#stateFilter a[data-state='"+stateAbbrev[a2[0].region_name]+"']").click();
+          }
+
+        });
 
         function renderData(json,state,todayOnly){
           var data_day = json[state];
