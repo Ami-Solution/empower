@@ -414,20 +414,20 @@
           var line_arr = [];
 
           var fuelConfig = {
-            "Black Coal": {order: 1, color:"#1F1F14"},
-            "Brown Coal": {order: 2, color:"#AD5C33"},
-            "Coal Tailings":{order: 3, color:"grey"},
-            "Coal Seam Methane":{order: 4, color:"grey"},
-            "Waste Coal Mine Gas":{order: 5, color:"grey"},
-            "Diesel":{order: 6, color:"orange"},
-            "Kerosene":{order: 7, color:"orange"},
-            "Natural Gas":{order: 8, color:"#FF5C5C"},
-            "Natural Gas / Diesel":{order: 9, color:"#FF5C5C"},
-            "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C"},
-            "Water":{order: 11, color:"#8AB8E6"},
-            "Wind":{order: 12, color:"#47D147"},
-            "Bagasse":{order: 13, color:"#47D147"},
-            "Solar":{order: 14, color:"#FFFF47"}
+            "Black Coal": {order: 1, color:"#1F1F14", label:"Black coal"},
+            "Brown Coal": {order: 2, color:"#AD5C33", label:"Brown coal"},
+            "Coal Tailings":{order: 3, color:"grey", label:"Coal tailings"},
+            "Coal Seam Methane":{order: 4, color:"grey", label:"Coal seam gas"},
+            "Waste Coal Mine Gas":{order: 5, color:"grey", label:"Waste coal mine gas"},
+            "Diesel":{order: 6, color:"orange", label:"Diesel"},
+            "Kerosene":{order: 7, color:"orange", label:"Kerosene"},
+            "Natural Gas":{order: 8, color:"#FF5C5C", label:"Natural gas"},
+            "Natural Gas / Diesel":{order: 9, color:"#FF5C5C", label:"Natural gas / diesel"},
+            "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C", label:"Natural gas / fuel oil"},
+            "Water":{order: 11, color:"#8AB8E6", label:"Hydro"},
+            "Wind":{order: 12, color:"#47D147", label:"Wind"},
+            "Bagasse":{order: 13, color:"#47D147", label:"Bagasse"},
+            "Solar":{order: 14, color:"#FFFF47", label:"Solar"}
           };
 
           function compare(a,b) {
@@ -472,7 +472,7 @@
           for (var k=0; k < newArray.length; k++)
           {
             series_arr.push({ 
-              label:newArray[k],
+              label:fuelConfig[newArray[k]].label,
               lineWidth:6, 
               rendererOptions:{smooth: true}, 
               showMarker:false,
