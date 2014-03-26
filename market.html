@@ -111,6 +111,27 @@
     <div id="my2dayrolling" class="container">
     </div>
 
+    <div class="container" style="margin-top:50px;">
+      <div class="row text-center">
+        <div class="col-md-4">
+          <div class="jumbotron" style="padding:30px;">
+            <h3>Dispatched quantity</h3>
+            <h1 id="state_quantity">n/a</h1>
+            <h3>MW</h3>
+          </div>
+        </div>
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4">
+          <div class="jumbotron" style="padding:30px;">
+            <h3>CO2 factor</h3>
+            <h1 id="state_co2_factor">n/a</h1>
+            <h3>t CO<sub>2</sub>-e / MWh</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
@@ -127,7 +148,7 @@
     <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
     <script>
       // Global
-      var myCurrentState, solarData;
+      var myCurrentState, solarData, aggregated_data;
       var gtodayOnly = true;
       var stateAbbrev = {
         "Victoria" :          "VIC",
@@ -234,8 +255,14 @@
               // cache buster
               _dc: (new Date()).getTime()
             }
+          ),
+          // Promise 5 - instant dispatch info including CO2
+          $.getJSON("data/aemo-json/data/dispatch.json",{
+              // cache buster
+              _dc: (new Date()).getTime()
+            }
           )
-        ).done(function(a1,a2,a3,a4){
+        ).done(function(a1,a2,a3,a4,a5){
           // Re-jigging the solar data into the solarData array
           if (a1[0].output)
           {
@@ -281,7 +308,7 @@
             }
           }
 
-          // Dispatch data
+          // Dispatch data for the whole day
           if (a4[0])
           {
             // Re-jigging of the data into an array of lines ingestible by the chart
@@ -341,6 +368,62 @@
             }
           }
 
+          // Current dispatch data
+          if (a5[0])
+          {
+            // Re-jigging of the data into an array of lines ingestible by the chart
+            // Aggregation by fuel type inside a state
+            aggregated_data = {
+              "VIC":{},
+              "NSW":{},
+              "SA": {},
+              "QLD":{},
+              "TAS":{}
+            };
+
+            var p_fuel, p_state;
+            var td = new Date().getDateString();
+            for (var participant in a5[0])
+            {
+              // We're only interested in adding quantities
+              // so we skip participants whose qty is not defined
+              if (a5[0][participant].qty)
+              {
+                if (a5[0][participant].co2_factor)
+                {
+                  p_state = a5[0][participant].region;
+                  p_co2 = parseFloat(a5[0][participant].co2_factor);
+                  p_qty = parseInt(a5[0][participant].qty);
+                  if (aggregated_data[p_state]["qty"] && aggregated_data[p_state]["co2_num"])
+                  {
+                    //console.log(a4[0][participant].participant);
+                    aggregated_data[p_state]["qty"] = aggregated_data[p_state]["qty"] + p_qty;
+                    aggregated_data[p_state]["co2_num"] = aggregated_data[p_state]["co2_num"] +  p_qty * p_co2;
+                  }
+                  else
+                  {
+                    aggregated_data[p_state] = {"qty":p_qty,"co2_num":p_qty * p_co2}; 
+                  }
+                }
+                else
+                {
+                  console.log(participant+" ("+a5[0][participant].participant+") has no CO2 factor!");
+                }
+              }
+            }
+          }
+
+          // Calculating the emission factor
+          for (s in aggregated_data)
+          {
+            if (aggregated_data.hasOwnProperty(s))
+            {
+              aggregated_data[s]["co2_factor"] = Math.round(aggregated_data[s]["co2_num"]/aggregated_data[s]["qty"]*100)/100;
+              aggregated_data[s]["qty"] = Math.round(aggregated_data[s]["qty"]);
+              aggregated_data[s]["co2_num"] = Math.round(aggregated_data[s]["co2_num"]);
+            }
+          }
+
           // Make a button out of the state
           $('.btn-group').button();
 
@@ -380,6 +463,10 @@
             tomorrow = today.add(1,'day');
             tomorrow_str = tomorrow.strftime('%Y/%m/%d');
           }
+
+          // Adjusting the metrics
+          $('#state_quantity').html(aggregated_data[state].qty);
+          $('#state_co2_factor').html(aggregated_data[state].co2_factor);
 
           // Emptying the list
           $('#my2dayrolling').empty();
@@ -509,8 +596,8 @@
                 {
                   line:
                   {
-                    start : [new Date(line1[0][0]).getTime(),0],                                                
-                    stop : [new $.jsDate().getTime(),0],                                                
+                    start : [new Date(line1[0][0]).getTime(),0],
+                    stop : [new $.jsDate().getTime(),0],
                     lineWidth: 380*2,
                     color: 'rgba(200, 200, 200,0.25)',
                     shadow: false,
