@@ -503,7 +503,7 @@
           }
 
           // Adjusting the metrics
-          $('#state_quantity').html(aggregated_data[state].qty);
+          $('#state_quantity').html(numberWithCommas(aggregated_data[state].qty));
           $('#state_co2_factor').html(aggregated_data[state].co2_factor);
           $('#state_pctage_renewable').html(aggregated_data[state].pctage_renewable);
 
