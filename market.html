@@ -115,12 +115,17 @@
       <div class="row text-center">
         <div class="col-md-4">
           <div class="jumbotron" style="padding:30px;">
-            <h3>Dispatched quantity</h3>
+            <h3>Dispatched</h3>
             <h1 id="state_quantity">n/a</h1>
             <h3>MW</h3>
           </div>
         </div>
         <div class="col-md-4">
+          <div class="jumbotron" style="padding:30px;">
+            <h3>Renewables</h3>
+            <h1 id="state_pctage_renewable">n/a</h1>
+            <h3>%</h3>
+          </div>
         </div>
         <div class="col-md-4">
           <div class="jumbotron" style="padding:30px;">
@@ -156,6 +161,23 @@
         "Queensland" :        "QLD",
         "Tasmania" :          "TAS",
         "South Australia" :   "SA"
+      };
+
+      var fuelConfig = {
+        "Black Coal": {order: 1, color:"#1F1F14", label:"Black coal", renewable:false},
+        "Brown Coal": {order: 2, color:"#AD5C33", label:"Brown coal", renewable:false},
+        "Coal Tailings":{order: 3, color:"grey", label:"Coal tailings", renewable:false},
+        "Coal Seam Methane":{order: 4, color:"grey", label:"Coal seam gas", renewable:false},
+        "Waste Coal Mine Gas":{order: 5, color:"grey", label:"Waste coal mine gas", renewable:false},
+        "Diesel":{order: 6, color:"orange", label:"Diesel", renewable:false},
+        "Kerosene":{order: 7, color:"orange", label:"Kerosene", renewable:false},
+        "Natural Gas":{order: 8, color:"#FF5C5C", label:"Natural gas", renewable:false},
+        "Natural Gas / Diesel":{order: 9, color:"#FF5C5C", label:"Natural gas / diesel", renewable:false},
+        "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C", label:"Natural gas / fuel oil", renewable:false},
+        "Water":{order: 11, color:"#8AB8E6", label:"Hydro", renewable:true},
+        "Wind":{order: 12, color:"#47D147", label:"Wind", renewable:true},
+        "Bagasse":{order: 13, color:"#47D147", label:"Bagasse", renewable:true},
+        "Solar":{order: 14, color:"#FFFF47", label:"Solar", renewable:true}
       };
 
       // Helper class for correct date display
@@ -333,7 +355,7 @@
                 p_fuel = a4[0][participant].fuel;
                 if (!p_fuel.length)
                 {
-                  console.log(participant+" ("+a4[0][participant].participant+") has no fuel type!");
+                  console.log(participant+" ("+a4[0][participant].participant+") has no fuel type (qty: "+a4[0][participant].qty+")");
                 }
                 else
                 {
@@ -374,11 +396,11 @@
             // Re-jigging of the data into an array of lines ingestible by the chart
             // Aggregation by fuel type inside a state
             aggregated_data = {
-              "VIC":{},
-              "NSW":{},
-              "SA": {},
-              "QLD":{},
-              "TAS":{}
+              "VIC":{"qty":0.0,"co2_num":0.0,"qty_renewable":0.0},
+              "NSW":{"qty":0.0,"co2_num":0.0,"qty_renewable":0.0},
+              "SA": {"qty":0.0,"co2_num":0.0,"qty_renewable":0.0},
+              "QLD":{"qty":0.0,"co2_num":0.0,"qty_renewable":0.0},
+              "TAS":{"qty":0.0,"co2_num":0.0,"qty_renewable":0.0}
             };
 
             var p_fuel, p_state;
@@ -392,24 +414,39 @@
                 if (a5[0][participant].co2_factor)
                 {
                   p_state = a5[0][participant].region;
+                  p_fuel = a5[0][participant].fuel;
                   p_co2 = parseFloat(a5[0][participant].co2_factor);
-                  p_qty = parseInt(a5[0][participant].qty);
-                  if (aggregated_data[p_state]["qty"] && aggregated_data[p_state]["co2_num"])
+                  p_qty = parseFloat(a5[0][participant].qty);
+
+                  aggregated_data[p_state]["qty"] = aggregated_data[p_state]["qty"] + p_qty;
+                  aggregated_data[p_state]["co2_num"] = aggregated_data[p_state]["co2_num"] +  p_qty * p_co2;
+                  if (p_fuel)
                   {
-                    //console.log(a4[0][participant].participant);
-                    aggregated_data[p_state]["qty"] = aggregated_data[p_state]["qty"] + p_qty;
-                    aggregated_data[p_state]["co2_num"] = aggregated_data[p_state]["co2_num"] +  p_qty * p_co2;
+                    if (fuelConfig[p_fuel].renewable)
+                    {
+                      aggregated_data[p_state]["qty_renewable"] = aggregated_data[p_state]["qty_renewable"] + p_qty;
+                    }
                   }
                   else
                   {
-                    aggregated_data[p_state] = {"qty":p_qty,"co2_num":p_qty * p_co2}; 
+                    console.log(participant+" ("+a5[0][participant].participant+") has no fuel type (qty: "+a5[0][participant].qty+")");
                   }
                 }
                 else
                 {
-                  console.log(participant+" ("+a5[0][participant].participant+") has no CO2 factor!");
+                  console.log(participant+" ("+a5[0][participant].participant+") has no CO2 factor (qty: "+a5[0][participant].qty+")");
                 }
               }
+            }
+          }
+
+          // Adding solar data to the demand met by renewables
+          for (s in aggregated_data)
+          {
+            if (aggregated_data.hasOwnProperty(s))
+            {
+              // Last known quantity = current quantity
+              aggregated_data[s]["qty_renewable"] = aggregated_data[s]["qty_renewable"] + solarData[s][solarData[s].length-1][1];        
             }
           }
 
@@ -419,6 +456,7 @@
             if (aggregated_data.hasOwnProperty(s))
             {
               aggregated_data[s]["co2_factor"] = Math.round(aggregated_data[s]["co2_num"]/aggregated_data[s]["qty"]*100)/100;
+              aggregated_data[s]["pctage_renewable"] = Math.round(aggregated_data[s]["qty_renewable"]/aggregated_data[s]["qty"]*100*10)/10;
               aggregated_data[s]["qty"] = Math.round(aggregated_data[s]["qty"]);
               aggregated_data[s]["co2_num"] = Math.round(aggregated_data[s]["co2_num"]);
             }
@@ -467,6 +505,7 @@
           // Adjusting the metrics
           $('#state_quantity').html(aggregated_data[state].qty);
           $('#state_co2_factor').html(aggregated_data[state].co2_factor);
+          $('#state_pctage_renewable').html(aggregated_data[state].pctage_renewable);
 
           // Emptying the list
           $('#my2dayrolling').empty();
@@ -499,23 +538,6 @@
 
           // Using all dispatch data for the past
           var line_arr = [];
-
-          var fuelConfig = {
-            "Black Coal": {order: 1, color:"#1F1F14", label:"Black coal"},
-            "Brown Coal": {order: 2, color:"#AD5C33", label:"Brown coal"},
-            "Coal Tailings":{order: 3, color:"grey", label:"Coal tailings"},
-            "Coal Seam Methane":{order: 4, color:"grey", label:"Coal seam gas"},
-            "Waste Coal Mine Gas":{order: 5, color:"grey", label:"Waste coal mine gas"},
-            "Diesel":{order: 6, color:"orange", label:"Diesel"},
-            "Kerosene":{order: 7, color:"orange", label:"Kerosene"},
-            "Natural Gas":{order: 8, color:"#FF5C5C", label:"Natural gas"},
-            "Natural Gas / Diesel":{order: 9, color:"#FF5C5C", label:"Natural gas / diesel"},
-            "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C", label:"Natural gas / fuel oil"},
-            "Water":{order: 11, color:"#8AB8E6", label:"Hydro"},
-            "Wind":{order: 12, color:"#47D147", label:"Wind"},
-            "Bagasse":{order: 13, color:"#47D147", label:"Bagasse"},
-            "Solar":{order: 14, color:"#FFFF47", label:"Solar"}
-          };
 
           function compare(a,b) {
             if (fuelConfig[a].order < fuelConfig[b].order)
