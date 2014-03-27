@@ -13,12 +13,21 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
     <style>
+      ul{
+        padding: 0;
+      }
+
       .well {
         margin:10px;
       }
 
       .dropdown-menu {
         font-size:18px;
+      }
+
+      .list-group-item {
+        margin: 0 0 -1px;
+        padding: 5px 5px 19px;
       }
 
       .jqplot-yaxis {
@@ -135,6 +144,17 @@
           </div>
         </div>
       </div>
+      <div class="row text-center">
+        <div class="col-md-4">
+          <h3>Market participants</h3>
+          <ul id="myparticipants">
+          </ul>
+        </div>
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4">
+        </div>
+      </div>
     </div>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -153,7 +173,7 @@
     <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
     <script>
       // Global
-      var myCurrentState, solarData, aggregated_data;
+      var myCurrentState, solarData, aggregated_data, participant_data;
       var gtodayOnly = true;
       var stateAbbrev = {
         "Victoria" :          "VIC",
@@ -173,7 +193,7 @@
         "Kerosene":{order: 7, color:"orange", label:"Kerosene", renewable:false},
         "Natural Gas":{order: 8, color:"#FF5C5C", label:"Natural gas", renewable:false},
         "Natural Gas / Diesel":{order: 9, color:"#FF5C5C", label:"Natural gas / diesel", renewable:false},
-        "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C", label:"Natural gas / fuel oil", renewable:false},
+        "Natural Gas / Fuel Oil":{order: 10, color:"#FF5C5C", label:"Natural gas / fuel", renewable:false},
         "Water":{order: 11, color:"#8AB8E6", label:"Hydro", renewable:true},
         "Wind":{order: 12, color:"#47D147", label:"Wind", renewable:true},
         "Bagasse":{order: 13, color:"#47D147", label:"Bagasse", renewable:true},
@@ -252,6 +272,25 @@
       function numberWithCommas(x) {
           return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       }
+
+      var pumpAListItem = function(d) {
+        var properUtilisation = Math.round(Math.min(d.utilisation,100));
+        var badgeColor = "grey";
+        if (properUtilisation == 100)
+        {
+          badgeColor = "red";
+        } else if (properUtilisation > 90) {
+          badgeColor = "orange";
+        } else if (properUtilisation > 50) {
+          badgeColor = "green";
+        };
+
+        return '<a href="#" class="list-group-item"> \
+                  <p class="list-group-item-heading pull-left" style="font-size:10px;">'+d.station_name+' ('+ fuelConfig[d.fuel].label+')</p> \
+                  <span class="badge pull-right" style="background-color:'+badgeColor+'">'+ properUtilisation +'%</span> \
+                  <span class="pull-right" style="margin-right:10px;">'+d.qty+' MW</span> \
+                </a>';
+      };
 
       $(window).load(function(){
         // Sure if that's needed
@@ -405,15 +444,31 @@
 
             var p_fuel, p_state;
             var td = new Date().getDateString();
+
+            participant_data = {};
+
             for (var participant in a5[0])
             {
               // We're only interested in adding quantities
               // so we skip participants whose qty is not defined
               if (a5[0][participant].qty)
               {
+                p_state = a5[0][participant].region;
+                p_fuel = a5[0][participant].fuel;
+
+                // Persisting the participant data per state
+                if (!participant_data[p_state])
+                {
+                  participant_data[p_state]=[];
+                }
+                // Only considering participants having a fuel type
+                if (p_fuel)
+                {
+                  participant_data[p_state].push(a5[0][participant]);
+                }
+
                 if (a5[0][participant].co2_factor)
                 {
-                  p_state = a5[0][participant].region;
                   p_fuel = a5[0][participant].fuel;
                   p_co2 = parseFloat(a5[0][participant].co2_factor);
                   p_qty = parseFloat(a5[0][participant].qty);
@@ -439,6 +494,20 @@
               }
             }
           }
+
+          // Sorting the participant data
+          var sortByQty = function(a,b){
+              if(parseFloat(a.qty) > parseFloat(b.qty)) {
+                  return -1;
+              } else {
+                  return 1;
+              }
+          }
+          participant_data["VIC"].sort(sortByQty);
+          participant_data["NSW"].sort(sortByQty);
+          participant_data["SA"].sort(sortByQty);
+          participant_data["TAS"].sort(sortByQty);
+          participant_data["QLD"].sort(sortByQty);
 
           // Adding solar data to the demand met by renewables
           for (s in aggregated_data)
@@ -506,6 +575,43 @@
           $('#state_quantity').html(numberWithCommas(aggregated_data[state].qty));
           $('#state_co2_factor').html(aggregated_data[state].co2_factor);
           $('#state_pctage_renewable').html(aggregated_data[state].pctage_renewable);
+
+          // Adjust the list of participants
+          $('#myparticipants').hide();
+          $('#myparticipants').empty();
+
+          for (var o in participant_data[state]) {
+            if (participant_data[state].hasOwnProperty(o))
+            {
+              // Adding the generator code to the object
+              participant_data[state][o]["duid"] = o;
+              // Setting quantity dispatched to null if undefined
+              if (!participant_data[state][o].qty)
+              {
+                participant_data[state][o].qty = 0;
+              }
+              else
+              {
+                participant_data[state][o].qty = Math.round(participant_data[state][o].qty*10)/10;
+              }
+              // Adding the utilisation factor
+              if (participant_data[state][o].reg_capacity_mw)
+              {
+                participant_data[state][o]["utilisation"] = participant_data[state][o].qty / participant_data[state][o].reg_capacity_mw * 100;
+              }
+              else
+              {
+                participant_data[state][o].reg_capacity_mw = 0;
+              }
+
+              if (participant_data[state][o].qty>0)
+              {
+                // Build a list element based on this object
+                $('#myparticipants').append($(pumpAListItem(participant_data[state][o])));     
+              }
+            }
+          }
+          $('#myparticipants').show();
 
           // Emptying the list
           $('#my2dayrolling').empty();
