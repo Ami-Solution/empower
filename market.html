@@ -276,10 +276,10 @@
       var pumpAListItem = function(d) {
         var properUtilisation = Math.round(Math.min(d.utilisation,100));
         var badgeColor = "grey";
-        if (properUtilisation == 100)
+        if (properUtilisation > 90)
         {
           badgeColor = "red";
-        } else if (properUtilisation > 90) {
+        } else if (properUtilisation > 75) {
           badgeColor = "orange";
         } else if (properUtilisation > 50) {
           badgeColor = "green";
