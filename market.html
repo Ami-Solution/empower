@@ -324,21 +324,26 @@
             }
           )
         ).done(function(a1,a2,a3,a4,a5){
+          var qty_vic,qty_nsw,qty_sa,qty_qld,qty_tas;
           // Re-jigging the solar data into the solarData array
           if (a1[0].output)
           {
             // Re-formatting the line data to fit the model:
             // solarData["VIC"]=[['2008-06-30 8:00AM',4], ['2008-7-14 8:00AM',6.5], ['2008-7-28 8:00AM',5.7], ['2008-8-11 8:00AM',9], ['2008-8-25 8:00AM',8.2]];
             var td = new Date().getDateString();
-            var qtyFillerBefore4am = [[td+' 0:00:00',0],[td+' 0:30:00',0],[td+' 1:00:00',0],[td+' 1:30:00',0],[td+' 2:00:00',0],[td+' 2:30:00',0],[td+' 3:00:00',0],[td+' 3:30:00',0]];
+            var qtyFiller = [[td+' 00:00:00',0],[td+' 00:30:00',0],[td+' 01:00:00',0],[td+' 01:30:00',0],[td+' 02:00:00',0],[td+' 02:30:00',0],[td+' 03:00:00',0],[td+' 03:30:00',0],[td+' 04:00:00',-1],[td+' 04:30:00',-1],[td+' 05:00:00',-1],[td+' 05:30:00',-1],[td+' 06:00:00',-1],[td+' 06:30:00',-1],[td+' 07:00:00',-1],[td+' 07:30:00',-1],[td+' 08:00:00',-1],[td+' 08:30:00',-1],[td+' 09:00:00',-1],[td+' 09:30:00',-1],[td+' 10:00:00',-1],[td+' 10:30:00',-1],[td+' 11:00:00',-1],[td+' 11:30:00',-1],[td+' 12:00:00',-1],[td+' 12:30:00',-1],[td+' 13:00:00',-1],[td+' 13:30:00',-1],[td+' 14:00:00',-1],[td+' 14:30:00',-1],[td+' 15:00:00',-1],[td+' 15:30:00',-1],[td+' 16:00:00',-1],[td+' 16:30:00',-1],[td+' 17:00:00',-1],[td+' 17:30:00',-1],[td+' 18:00:00',-1],[td+' 18:30:00',-1],[td+' 19:00:00',-1],[td+' 19:30:00',-1],[td+' 20:00:00',-1],[td+' 20:30:00',-1],[td+' 21:00:00',-1],[td+' 21:30:00',-1],[td+' 22:00:00',-1],[td+' 22:30:00',-1],[td+' 23:00:00',-1],[td+' 23:30:00',-1]];
 
+            // Array of array deep cloning can not be done using just slice(0)
+            // Source: http://stackoverflow.com/questions/565430/deep-copying-an-array-using-jquery 
             solarData={
-              "VIC":qtyFillerBefore4am.slice(0),
-              "NSW":qtyFillerBefore4am.slice(0),
-              "SA": qtyFillerBefore4am.slice(0),
-              "QLD":qtyFillerBefore4am.slice(0),
-              "TAS":qtyFillerBefore4am.slice(0)
+              "VIC":$.extend(true, [], qtyFiller),
+              "NSW":$.extend(true, [], qtyFiller),
+              "SA": $.extend(true, [], qtyFiller),
+              "QLD":$.extend(true, [], qtyFiller),
+              "TAS":$.extend(true, [], qtyFiller)
             };
+
+            var last_defined_qty_vic=0, last_defined_qty_nsw=0, last_defined_qty_sa=0, last_defined_qty_qld=0, last_defined_qty_tas=0;
 
             for (var k=0;k<a1[0].output.length;k++)
             {
@@ -352,24 +357,104 @@
               var intervalInMn = 30;
               if (dt.getMinutes() % intervalInMn == 0)
               {
+                // Even if the date is an entry, these quantities might be undefined!
                 qty_vic = a1[0].output[k].vic;
                 qty_nsw = a1[0].output[k].nsw;
                 qty_sa = a1[0].output[k].sa;
                 qty_qld = a1[0].output[k].qld;
                 qty_tas = a1[0].output[k].tas;
                 dt_fmt = dt.jqPlotDateAxisFormat();
+
+                // Using the last defined quantity, in case the value is just missing from the object at the given date
+                if (qty_vic)
+                {
+                  last_defined_qty_vic = qty_vic;
+                }
+                if (qty_nsw)
+                {
+                  last_defined_qty_nsw = qty_nsw;
+                }
+                if (qty_sa)
+                {
+                  last_defined_qty_sa = qty_sa;
+                }
+                if (qty_qld)
+                {
+                  last_defined_qty_qld = qty_qld;
+                }
+                if (qty_tas)
+                {
+                  last_defined_qty_tas = qty_tas;
+                }
               }
               else
               {
                 continue;
               }
 
-              solarData["VIC"].push([dt_fmt,qty_vic]);
-              solarData["NSW"].push([dt_fmt,qty_nsw]);
-              solarData["SA"].push([dt_fmt,qty_sa]);
-              solarData["QLD"].push([dt_fmt,qty_qld]);
-              solarData["TAS"].push([dt_fmt,qty_tas]);
+              for (var l=0;l<24*60/intervalInMn;l++)
+              {
+                if (solarData["VIC"][l][0]==dt_fmt)
+                {
+                  solarData["VIC"][l][1]=last_defined_qty_vic;
+                }
+                if (solarData["NSW"][l][0]==dt_fmt)
+                {
+                  solarData["NSW"][l][1]=last_defined_qty_nsw;
+                }
+                if (solarData["SA"][l][0]==dt_fmt)
+                {
+                  solarData["SA"][l][1]=last_defined_qty_sa;
+                }
+                if (solarData["QLD"][l][0]==dt_fmt)
+                {
+                  solarData["QLD"][l][1]=last_defined_qty_qld;
+                }
+                if (solarData["TAS"][l][0]==dt_fmt)
+                {
+                  solarData["TAS"][l][1]=last_defined_qty_tas;
+                }
+              }
             }
+
+            // Now removing the end tail (i.e. everything after the current date / time)
+            // Based on current date:
+            var dt_now = new Date();
+            var passedMn = dt_now.getHours()*60+dt_now.getMinutes();
+            var eltNb_now = Math.round(passedMn/1440*24*60/intervalInMn);
+            solarData["VIC"] = solarData["VIC"].slice(0,eltNb_now); 
+            solarData["NSW"] = solarData["NSW"].slice(0,eltNb_now); 
+            solarData["SA"] = solarData["SA"].slice(0,eltNb_now); 
+            solarData["QLD"] = solarData["QLD"].slice(0,eltNb_now); 
+            solarData["TAS"] = solarData["TAS"].slice(0,eltNb_now); 
+
+            // Then get all remaining negative values to 0
+            // It's possible that some date entries were just not there at all in the JSON in the first place
+            // TODO: interpolate the values from before/after (if those are available!)
+            for (var m=0; m<eltNb_now;m++)
+            {
+              if (solarData["VIC"][m][1]==-1)
+              {
+                solarData["VIC"][m][1]=0;
+              }
+              if (solarData["NSW"][m][1]==-1)
+              {
+                solarData["NSW"][m][1]=0;
+              }
+              if (solarData["SA"][m][1]==-1)
+              {
+                solarData["SA"][m][1]=0;
+              }
+              if (solarData["QLD"][m][1]==-1)
+              {
+                solarData["QLD"][m][1]=0;
+              }
+              if (solarData["TAS"][m][1]==-1)
+              {
+                solarData["TAS"][m][1]=0;
+              }  
+            }
+
           }
 
           // Dispatch data for the whole day
