@@ -287,8 +287,8 @@
 
         return '<a href="#" class="list-group-item"> \
                   <p class="list-group-item-heading pull-left" style="font-size:10px;">'+d.station_name+' ('+ fuelConfig[d.fuel].label+')</p> \
-                  <span class="badge pull-right" style="background-color:'+badgeColor+'">'+ properUtilisation +'%</span> \
-                  <span class="pull-right" style="margin-right:10px;">'+d.qty+' MW</span> \
+                  <span class="badge pull-right" style="background-color:'+badgeColor+'">'+ ("..."+properUtilisation).slice(-3).replace(".","&nbsp;") +'%</span> \
+                  <span class="pull-right" style="margin-right:5px;">'+d.qty+' MW</span> \
                 </a>';
       };
 
