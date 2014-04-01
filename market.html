@@ -124,7 +124,7 @@
       <div class="row text-center">
         <div class="col-md-4">
           <div class="jumbotron" style="padding:30px;">
-            <h3>Dispatched</h3>
+            <h3>Demand</h3>
             <h1 id="state_quantity">n/a</h1>
             <h3>MW</h3>
           </div>
@@ -603,6 +603,7 @@
             if (aggregated_data.hasOwnProperty(s))
             {
               // Last known quantity = current quantity
+              aggregated_data[s]["qty"] = aggregated_data[s]["qty"] + solarData[s][solarData[s].length-1][1]; 
               aggregated_data[s]["qty_renewable"] = aggregated_data[s]["qty_renewable"] + solarData[s][solarData[s].length-1][1];        
             }
           }
