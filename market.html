@@ -102,7 +102,7 @@
       <div class="text-center well">
         <!-- Split button for state filtering -->
         <div class="btn-group text-left">
-          <button id="stateFilterBtn" type="button" class="btn btn-lg btn-default dropdown-toggle" data-toggle="dropdown">
+          <button id="stateFilterBtn" type="button" class="btn btn-lg btn-default dropdown-toggle disabled" data-toggle="dropdown">
             Pick a state <span class="caret"></span>
           </button>
           <ul id="stateFilter" class="dropdown-menu" role="menu">
@@ -641,6 +641,8 @@
             // Select the corresponding state in the drop down
             $("#stateFilter a[data-state='"+stateAbbrev[a2[0].region_name]+"']").click();
           }
+          // In any case, the button has to become usable!
+          $("#stateFilterBtn").removeClass("disabled");
 
         });
 
