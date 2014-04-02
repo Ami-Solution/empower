@@ -344,6 +344,7 @@
             };
 
             var last_defined_qty_vic=0, last_defined_qty_nsw=0, last_defined_qty_sa=0, last_defined_qty_qld=0, last_defined_qty_tas=0;
+            var intervalInMn = 30;
 
             for (var k=0;k<a1[0].output.length;k++)
             {
@@ -354,7 +355,6 @@
               // Pb here, like today: it is possible that there are gaps in the data
               // Meaning there might be some data for 1:25 but not for 1:30
               // Need a clean way to overcome that (maybe with an array of times)
-              var intervalInMn = 30;
               if (dt.getMinutes() % intervalInMn == 0)
               {
                 // Even if the date is an entry, these quantities might be undefined!
