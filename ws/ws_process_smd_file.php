@@ -76,6 +76,7 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"JEMENA"	=> "jemena",
 	    	"AGL"		=> "agl",
 	    	"NOTSURE"	=> "notsure",
+	    	"LUMO"		=> "lumo",
 	    	"CLICK"		=> "click"
 	    );
 
@@ -147,6 +148,8 @@ try {
 
 			$line1_agl = '"AccountNumber","NMI","DeviceNumber","DeviceType","RegisterCode","RateTypeDescription","StartDate","EndDate","ProfileReadValue","RegisterReadValue","QualityFlag",';
 
+			$line1_lumo = 'NMI,IntervalReadDate,MeterSerialNo,EnergyDirection,UOM,RegisterID,ControlledLoad,0:15,T1,0:30,T2,0:45,T3,1:00,T4,1:15,T5,1:30,T6,1:45,T7,2:00,T8,2:15,T9,2:30,T10,2:45,T11,3:00,T12,3:15,T13,3:30,T14,3:45,T15,4:00,T16,4:15,T17,4:30,T18,4:45,T19,5:00,T20,5:15,T21,5:30,T22,5:45,T23,6:00,T24,6:15,T25,6:30,T26,6:45,T27,7:00,T28,7:15,T29,7:30,T30,7:45,T31,8:00,T32,8:15,T33,8:30,T34,8:45,T35,9:00,T36,9:15,T37,9:30,T38,9:45,T39,10:00,T40,10:15,T41,10:30,T42,10:45,T43,11:00,T44,11:15,T45,11:30,T46,11:45,T47,12:00,T48,12:15,T49,12:30,T50,12:45,T51,13:00,T52,13:15,T53,13:30,T54,13:45,T55,14:00,T56,14:15,T57,14:30,T58,14:45,T59,15:00,T60,15:15,T61,15:30,T62,15:45,T63,16:00,T64,16:15,T65,16:30,T66,16:45,T67,17:00,T68,17:15,T69,17:30,T70,17:45,T71,18:00,T72,18:15,T73,18:30,T74,18:45,T75,19:00,T76,19:15,T77,19:30,T78,19:45,T79,20:00,T80,20:15,T81,20:30,T82,20:45,T83,21:00,T84,21:15,T85,21:30,T86,21:45,T87,22:00,T88,22:15,T89,22:30,T90,22:45,T91,23:00,T92,23:15,T93,23:30,T94,23:45,T95,0:00,T96';
+
 			$line1_click = '200,6102514557,E1,E1,E1,N1,A8125048,KWH,30,20140331,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,';
 
 			switch($first_line)
@@ -159,6 +162,9 @@ try {
 					break;
 				case $line1_agl:
 					$method = "AGL";
+					break;
+				case $line1_lumo:
+					$method = "LUMO";
 					break;
 				case $line1_click:
 					$method = "CLICK";
@@ -238,6 +244,16 @@ try {
 		    $pb->advance(0.5,'Formatting the start date...');
 			$date_start = singleValueDBQuery("select to_char(to_date(day,'MM/DD/YY'),'DD/MM/YYYY') as startdate from staging_notsure where id=(select min(a.id) from staging_notsure a)");
 
+    		break;
+
+    	case "LUMO":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading Lumo CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/lumo.sh '.$staged_file_path);
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(intervalreaddate,'DD/Mon/YY'),'DD/MM/YYYY') as startdate from staging_lumo where id=(select min(a.id) from staging_lumo a);");
     		break;
 
     	case "CLICK":
