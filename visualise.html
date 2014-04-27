@@ -191,7 +191,11 @@
                     $('#myheatmap').empty()
                                 .css('padding',0).css('width','100%')
                                 .append(heatmap_iframe);
-                    $('body').scrollTo('#myheatmap');
+
+                    // Better scroll to that the basic scrollTo element
+                    $('html, body').animate({
+                        scrollTop: ($('#myheatmap').offset().top)
+                    },1000);
                 }
             }
             else
