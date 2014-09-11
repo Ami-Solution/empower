@@ -1,0 +1,5 @@
+#!/bin/bash
+
+BASEDIR=$(dirname $0)
+
+/usr/bin/wget "http://www.bom.gov.au/jsp/ncc/cdio/weatherData/av?p_display_type=dailyZippedDataFile&p_stn_num=086071&p_nccObsCode=122&p_c=-1481667696" -O $BASEDIR/bom-temp-melb.zip > $BASEDIR/log.txt

@@ -73,11 +73,11 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    $corr = array(
 	    	"ORIGIN1" 	=> "origin1",
 	    	"ORIGIN2" 	=> "origin2",
-	    	"JEMENA"	=> "jemena",
 	    	"AGL"		=> "agl",
 	    	"NOTSURE"	=> "notsure",
 	    	"LUMO"		=> "lumo",
-	    	"CLICK"		=> "click"
+	    	"CLICK"		=> "click",
+	    	"EA"		=> "ea"
 	    );
 
 	    // Getting the parameterised query
@@ -140,7 +140,7 @@ try {
 	    case "text/plain":
 	    	// Further investigation needed as there are many providers of plan text files
 	        // Sniffing the first line of the file
-			$first_line = strtok($file_in_a_string, "\r\n");
+			$first_line = strtok($file_in_a_string, "\n\r");
 
 			// Library of smart meter data file headers
 	        $line1_origin2 = 'NMI,METER SERIAL NUMBER,CON/GEN,DATE,ESTIMATED?,00:00 - 00:30,00:30 - 01:00,01:00 - 01:30,01:30 - 02:00,02:00 - 02:30,02:30 - 03:00,03:00 - 03:30,03:30 - 04:00,04:00 - 04:30,04:30 - 05:00,05:00 - 05:30,05:30 - 06:00,06:00 - 06:30,06:30 - 07:00,07:00 - 07:30,07:30 - 08:00,08:00 - 08:30,08:30 - 09:00,09:00 - 09:30,09:30 - 10:00,10:00 - 10:30,10:30 - 11:00,11:00 - 11:30,11:30 - 12:00,12:00 - 12:30,12:30 - 13:00,13:00 - 13:30,13:30 - 14:00,14:00 - 14:30,14:30 - 15:00,15:00 - 15:30,15:30 - 16:00,16:00 - 16:30,16:30 - 17:00,17:00 - 17:30,17:30 - 18:00,18:00 - 18:30,18:30 - 19:00,19:00 - 19:30,19:30 - 20:00,20:00 - 20:30,20:30 - 21:00,21:00 - 21:30,21:30 - 22:00,22:00 - 22:30,22:30 - 23:00,23:00 - 23:30,23:30 - 00:00';
@@ -150,28 +150,44 @@ try {
 
 			$line1_lumo = 'NMI,IntervalReadDate,MeterSerialNo,EnergyDirection,UOM,RegisterID,ControlledLoad,0:15,T1,0:30,T2,0:45,T3,1:00,T4,1:15,T5,1:30,T6,1:45,T7,2:00,T8,2:15,T9,2:30,T10,2:45,T11,3:00,T12,3:15,T13,3:30,T14,3:45,T15,4:00,T16,4:15,T17,4:30,T18,4:45,T19,5:00,T20,5:15,T21,5:30,T22,5:45,T23,6:00,T24,6:15,T25,6:30,T26,6:45,T27,7:00,T28,7:15,T29,7:30,T30,7:45,T31,8:00,T32,8:15,T33,8:30,T34,8:45,T35,9:00,T36,9:15,T37,9:30,T38,9:45,T39,10:00,T40,10:15,T41,10:30,T42,10:45,T43,11:00,T44,11:15,T45,11:30,T46,11:45,T47,12:00,T48,12:15,T49,12:30,T50,12:45,T51,13:00,T52,13:15,T53,13:30,T54,13:45,T55,14:00,T56,14:15,T57,14:30,T58,14:45,T59,15:00,T60,15:15,T61,15:30,T62,15:45,T63,16:00,T64,16:15,T65,16:30,T66,16:45,T67,17:00,T68,17:15,T69,17:30,T70,17:45,T71,18:00,T72,18:15,T73,18:30,T74,18:45,T75,19:00,T76,19:15,T77,19:30,T78,19:45,T79,20:00,T80,20:15,T81,20:30,T82,20:45,T83,21:00,T84,21:15,T85,21:30,T86,21:45,T87,22:00,T88,22:15,T89,22:30,T90,22:45,T91,23:00,T92,23:15,T93,23:30,T94,23:45,T95,0:00,T96';
 
-			$line1_click = '200,6102514557,E1,E1,E1,N1,A8125048,KWH,30,20140331,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,';
+			//$line1_click = '200,6102514557,E1,E1,E1,N1,A8125048,KWH,30,20140331,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,';
+			$line1_click = '200,';
 
-			switch($first_line)
+			$line1_ea = 'Name,';
+
+			// Issue with how the EA file was encoded - need to remove Byte Mark Order
+			// Source: http://stackoverflow.com/questions/4057742/how-to-remove-efbbbf-in-php-string/4057875#4057875
+			if (strcmp(addcslashes($first_line,"\0..\37!@\177..\377"),$first_line) !== 0)
 			{
-				case $line1_origin2:
+				logmsg('File seems to have an UTF BOM - attempting conversion ...');
+				$enc = mb_detect_encoding($first_line);
+				$first_line = substr(mb_convert_encoding($first_line, "ASCII", $enc),1,strlen($first_line));				
+			}
+
+			//logmsg('1st line:'.addcslashes($first_line,"\0..\37!@\177..\377").','.strlen($first_line));
+
+			switch (true) {
+				case (strcmp($first_line,$line1_origin2) == 0):
 					$method = "ORIGIN2";
 					break;
-				case $line1_jemena:
-					$method = "JEMENA";
+				case (strcmp($first_line,$line1_jemena) == 0):
+					$method = "ORIGIN2";
 					break;
-				case $line1_agl:
+				case (strcmp($first_line,$line1_agl) == 0):
 					$method = "AGL";
 					break;
-				case $line1_lumo:
+				case (strcmp($first_line,$line1_lumo) == 0):
 					$method = "LUMO";
 					break;
-				case $line1_click:
+				case (strcmp(substr($first_line,0,4),$line1_click) == 0):
 					$method = "CLICK";
+					break;
+				case (strcmp(substr($first_line,0,5),$line1_ea) == 0):
+					$method = "EA";
 					break;
 				default:
 					$message = "Un-recognised text file!";
-					mySendMail('File upload unsucessful with first line:'.$first_line,$message,$staged_file_path);
+					mySendMail('File upload unsucessful with first line: '.$first_line,$message,$staged_file_path);
 					break;
 			}
 	        break;
@@ -202,17 +218,6 @@ try {
 
     		break;
 
-    	case "JEMENA":
-		    //  a. Into staging
-		    $pb->advance(0.3,'Loading Jemena CSV data into database...');
-    		$staging_script = shell_exec(realpath('../heatmap').'/load/jemena.sh '.$staged_file_path);
-
-		    // Properly formatted start date
-		    $pb->advance(0.5,'Formatting the start date...');
-			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_jemena where id=(select min(a.id) from staging_jemena a);");
-
-    		break;
-
     	case "ORIGIN2":
 		    //  a. Into staging
 		    $pb->advance(0.3,'Loading Origin CSV data into database...');
@@ -220,7 +225,7 @@ try {
 
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
-			$date_start = singleValueDBQuery("select to_char(to_date(date,'DD-MM-YY'),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
+			$date_start = singleValueDBQuery("select to_char(to_date(date,case when (length(date)=8) then 'DD-MM-YY' when (length(date)=10) then 'DD-MM-YYYY' else 'DD-Mon-YYYY' end),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
 
     		break;
 
@@ -242,7 +247,7 @@ try {
 
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
-			$date_start = singleValueDBQuery("select to_char(to_date(day,'MM/DD/YY'),'DD/MM/YYYY') as startdate from staging_notsure where id=(select min(a.id) from staging_notsure a)");
+			$date_start = singleValueDBQuery("select to_char(to_date(day,'DD/MM/YY'),'DD/MM/YYYY') as startdate from staging_notsure where id=(select min(a.id) from staging_notsure a)");
 
     		break;
 
@@ -267,8 +272,17 @@ try {
 
     		break;
 
-    	case "LUMO":
+    	case "EA":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading EA CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/ea.sh '.$staged_file_path.' '.realpath('../staging'));
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'YYYY-MM-DD'),'DD/MM/YYYY') as startdate from staging_ea where id=(select min(a.id) from staging_ea a);");
+
     		break;
+
     	default:
     		break;
 	}
