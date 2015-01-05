@@ -157,7 +157,7 @@
     <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
 
     <!-- Getting current client IP -->
-    <script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script>
+    <!-- script type="text/javascript" src="http://l2.io/ip.js?var=myip"></script-->
     <script>
       // Global
       var myCurrentState, solarData, aggregated_data, participant_data;
@@ -291,7 +291,7 @@
             }
           ),
           // Promise 2 - GeoIP
-          $.getJSON("http://freegeoip.net/json/"+myip+"?callback=?"),
+          $.getJSON("http://www.telize.com/geoip?callback=?"),
           // Promise 3 - demand/price current and forecast
           $.getJSON("data/aemo-json/data/dmd-price-30mn.json",{
               // cache buster
@@ -624,10 +624,10 @@
           });
 
           // Any useable info from the geoip service?
-          if (a2[0].region_name)
+          if (a2[0].region)
           {
             // Select the corresponding state in the drop down
-            $("#stateFilter a[data-state='"+stateAbbrev[a2[0].region_name]+"']").click();
+            $("#stateFilter a[data-state='"+stateAbbrev[a2[0].region]+"']").click();
           }
           // In any case, the button has to become usable!
           $("#stateFilterBtn").removeClass("disabled");
