@@ -77,7 +77,8 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"NOTSURE"	=> "notsure",
 	    	"LUMO"		=> "lumo",
 	    	"CLICK"		=> "click",
-	    	"EA"		=> "ea"
+	    	"EA"		=> "ea",
+	    	"CITIPOWER-POWERCOR" => "citipower_powercor"
 	    );
 
 	    // Getting the parameterised query
@@ -185,6 +186,9 @@ try {
 				case (strcmp(substr($first_line,0,5),$line1_ea) == 0):
 					$method = "EA";
 					break;
+				case (substr_count($first_line, ',') == 11):
+					$method = "CITIPOWER-POWERCOR";
+					break;					
 				default:
 					$message = "Un-recognised text file!";
 					mySendMail('File upload unsucessful with first line: '.$first_line,$message,$staged_file_path);
@@ -282,6 +286,18 @@ try {
 			$date_start = singleValueDBQuery("select to_char(to_date(date,'YYYY-MM-DD'),'DD/MM/YYYY') as startdate from staging_ea where id=(select min(a.id) from staging_ea a);");
 
     		break;
+
+
+    	case "CITIPOWER-POWERCOR":
+ 		    //  a. Into staging
+		    $pb->advance(0.3,'Loading CITIPOWER/POWERCOR CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/citipower-powercor.sh '.$staged_file_path.' '.realpath('../staging'));
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select case length(date) when 9 then '0'||date else date end as startdate from staging_citipower_powercor where id=(select min(a.id) from staging_citipower_powercor a);");
+
+    		break;   		
 
     	default:
     		break;
