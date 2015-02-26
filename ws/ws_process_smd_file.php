@@ -6,8 +6,8 @@ require_once("inc/security.inc.php");
 require_once("inc/json.pdo.inc.php");
 
 # Mail wrapper
-if (file_exists('../../../phpmailer/PHPMailerAutoload.php'))
-	include('../../../phpmailer/PHPMailerAutoload.php');
+if (file_exists('../../phpmailer/PHPMailerAutoload.php'))
+	include('../../phpmailer/PHPMailerAutoload.php');
 
 # For communication of updates to the calling script
 require_once 'AJAX_PROGRESS.class.php';
