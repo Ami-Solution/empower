@@ -229,7 +229,7 @@ try {
 
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
-			$date_start = singleValueDBQuery("select to_char((case when (length(date)=7) then to_date('0'||date,'DD/MM/YY') when (length(date)=8) then to_date(date,'DD/MM/YY') when (length(date)=10) then to_date(date,'DD/MM/YYYY') else to_date(date,'DD/Mon/YYYY') end),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
+			$date_start = singleValueDBQuery("select to_char((case when (length(date)=7) then to_date('0'||date,'DD/MM/YY') when (length(date)=8) then to_date(date,'DD/MM/YY') when (length(dt)=9) then to_date('0'||dt,'DD/MM/YYYY') when (length(date)=10) then to_date(date,'DD/MM/YYYY') else to_date(date,'DD/Mon/YYYY') end),'DD/MM/YYYY') as startdate from staging_origin2 where id=(select min(a.id) from staging_origin2 a);");
 
     		break;
 
