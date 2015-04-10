@@ -78,7 +78,8 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"LUMO"		=> "lumo",
 	    	"CLICK"		=> "click",
 	    	"EA"		=> "ea",
-	    	"CITIPOWER-POWERCOR" => "citipower_powercor"
+	    	"CITIPOWER-POWERCOR" => "citipower_powercor",
+	    	"MOMENTUM"	=> "click"
 	    );
 
 	    // Getting the parameterised query
@@ -167,6 +168,8 @@ try {
 
 			//logmsg('1st line:'.addcslashes($first_line,"\0..\37!@\177..\377").','.strlen($first_line));
 
+			$line1_momentum = 'Date/Time,0:00,0:30,1:00,1:30,2:00,2:30,3:00,3:30,4:00,4:30,5:00,5:30,6:00,6:30,7:00,7:30,8:00,8:30,9:00,9:30,10:00,10:30,11:00,11:30,12:00,12:30,13:00,13:30,14:00,14:30,15:00,15:30,16:00,16:30,17:00,17:30,18:00,18:30,19:00,19:30,20:00,20:30,21:00,21:30,22:00,22:30,23:00,23:30,Quality,Total';
+
 			switch (true) {
 				case (strcmp($first_line,$line1_origin2) == 0):
 					$method = "ORIGIN2";
@@ -188,7 +191,10 @@ try {
 					break;
 				case (substr_count($first_line, ',') == 11):
 					$method = "CITIPOWER-POWERCOR";
-					break;					
+					break;
+				case (strcmp($first_line,$line1_momentum) == 0):
+					$method = "MOMENTUM";
+					break;
 				default:
 					$message = "Un-recognised text file!";
 					mySendMail('File upload unsucessful with first line: '.$first_line,$message,$staged_file_path);
@@ -298,6 +304,17 @@ try {
 			$date_start = singleValueDBQuery("select case length(date) when 9 then '0'||date else date end as startdate from staging_citipower_powercor where id=(select min(a.id) from staging_citipower_powercor a);");
 
     		break;   		
+
+    	case "MOMENTUM":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading MOMENTUM CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/momentum.sh '.$staged_file_path.' '.realpath('../staging'));
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select to_char(to_date(date,'YYYYMMDD'),'DD/MM/YYYY') as startdate from staging_click where id=(select min(a.id) from staging_click a);");
+
+    		break;
 
     	default:
     		break;
