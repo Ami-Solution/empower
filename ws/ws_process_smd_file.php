@@ -80,7 +80,8 @@ function executeParamLoadQuery ($method,$client_id,$date_start) {
 	    	"EA"		=> "ea",
 	    	"CITIPOWER-POWERCOR" => "citipower_powercor",
 	    	"MOMENTUM"	=> "click",
-	    	"RICHARDS"	=> "richards"
+	    	"RICHARDS"	=> "richards",
+	    	"NAPIERS"	=> "napiers"
 	    );
 
 	    // Getting the parameterised query
@@ -173,6 +174,8 @@ try {
 
 			$line1_richards = 'IntervalReadDate,0:30,1:00,1:30,2:00,2:30,3:00,3:30,4:00,4:30,5:00,5:30,6:00,6:30,7:00,7:30,8:00,8:30,9:00,9:30,10:00,10:30,11:00,11:30,12:00,12:30,13:00,13:30,14:00,T56,14:30,15:00,15:30,16:00,16:30,17:00,17:30,18:00,18:30,19:00,19:30,20:00,20:30,21:00,21:30,22:00,22:30,23:00,23:30,0:00';
 
+			$line1_napiers = '"VMETERID","INTERVAL_STARTDT","TRANS_TID","TRANS_UID","TRANS_STARTTS","VALUE01","VALUE02","VALUE03","VALUE04","VALUE05","VALUE06","VALUE07","VALUE08","VALUE09","VALUE10","VALUE11","VALUE12","VALUE13","VALUE14","VALUE15","VALUE16","VALUE17","VALUE18","VALUE19","VALUE20","VALUE21","VALUE22","VALUE23","VALUE24","VALUE25","VALUE26","VALUE27","VALUE28","VALUE29","VALUE30","VALUE31","VALUE32","VALUE33","VALUE34","VALUE35","VALUE36","VALUE37","VALUE38","VALUE39","VALUE40","VALUE41","VALUE42","VALUE43","VALUE44","VALUE45","VALUE46","VALUE47","VALUE48","VALUE_FLAG","MDP_VERSIONDT","READ_TYPE_FLAG","MDP","DATACOLLECTIONTYPECODE"';
+
 			switch (true) {
 				case (strcmp($first_line,$line1_origin2) == 0):
 					$method = "ORIGIN2";
@@ -200,6 +203,9 @@ try {
 					break;
 				case (strcmp($first_line,$line1_richards) == 0):
 					$method = "RICHARDS";
+					break;
+				case (strcmp($first_line,$line1_napiers) == 0):
+					$method = "NAPIERS";
 					break;
 				default:
 					$message = "Un-recognised text file!";
@@ -330,6 +336,17 @@ try {
 		    // Properly formatted start date
 		    $pb->advance(0.5,'Formatting the start date...');
 			$date_start = singleValueDBQuery("select to_char(to_date((case length(date) when 8 then '0' else '' end)||date,'DD-Mon-YY'),'DD/MM/YYYY') as startdate from staging_click where id=(select min(a.id) from staging_click a);");
+
+    		break;
+
+    	case "NAPIERS":
+		    //  a. Into staging
+		    $pb->advance(0.3,'Loading CSV data into database...');
+    		$staging_script = shell_exec(realpath('../heatmap').'/load/napiers.sh '.$staged_file_path.' '.realpath('../staging'));
+
+		    // Properly formatted start date
+		    $pb->advance(0.5,'Formatting the start date...');
+			$date_start = singleValueDBQuery("select date as startdate from staging_click where id=(select min(a.id) from staging_click a);");
 
     		break;
 
