@@ -291,7 +291,7 @@
             }
           ),
           // Promise 2 - GeoIP
-          $.getJSON("http://www.telize.com/geoip?callback=?"),
+          $.getJSON("https://freegeoip.net/json/?callback=?"),
           // Promise 3 - demand/price current and forecast
           $.getJSON("data/aemo-json/data/dmd-price-30mn.json",{
               // cache buster
@@ -624,10 +624,10 @@
           });
 
           // Any useable info from the geoip service?
-          if (a2[0].region)
+          if (a2[0].region_code)
           {
             // Select the corresponding state in the drop down
-            $("#stateFilter a[data-state='"+stateAbbrev[a2[0].region]+"']").click();
+            $("#stateFilter a[data-state='"+a2[0].region_code+"']").click();
           }
           // In any case, the button has to become usable!
           $("#stateFilterBtn").removeClass("disabled");
